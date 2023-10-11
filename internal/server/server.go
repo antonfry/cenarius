@@ -71,6 +71,7 @@ func (s *server) StopGRPCServer() {
 // StartHTTPServer starts GRPC Server
 func (s *server) StartHTTPServer() {
 	s.logger.Infof("Starting HTTP server with config: %v\n", s.config)
+	s.router = chi.NewRouter()
 	s.configureRouter()
 	if err := s.HTTPServer.ListenAndServe(); err != http.ErrServerClosed {
 		s.logger.Fatal(err)

@@ -19,7 +19,7 @@ func (s *server) respond(w http.ResponseWriter, r *http.Request, code int, data 
 }
 
 func (s *server) configureRouter() {
-	s.router.Use(setRequestID)
+	s.router.Use(s.setRequestID)
 	s.router.Use(s.logRequest)
 	s.router.Use(gzipHandle)
 	s.router.Use(s.setContentType)

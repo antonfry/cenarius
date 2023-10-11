@@ -42,7 +42,7 @@ func (s *server) authenticateUser(next http.Handler) http.Handler {
 	})
 }
 
-func setRequestID(next http.Handler) http.Handler {
+func (s *server) setRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		id := uuid.New().String()
 		w.Header().Set("X-Request-ID", id)

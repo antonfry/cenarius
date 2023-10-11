@@ -21,3 +21,7 @@ func NewAgent(config *Config) *agent {
 func (a *agent) Start() {
 
 }
+
+func (a *agent) Shutdown() {
+
+}
