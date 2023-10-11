@@ -1,11 +1,11 @@
 package store
 
 type Store interface {
-	SecretLP() LoginWithPasswordRepository
-	SecretCard() CreditCardRepository
+	LoginWithPassword() LoginWithPasswordRepository
+	CreditCard() CreditCardRepository
 	SecretText() SecretTextRepository
 	SecretBinary() SecretBinaryRepository
-	SecretData() SecretDataRepository
+	// SecretData() SecretDataRepository
 	User() UserRepository
 	Close()
 }

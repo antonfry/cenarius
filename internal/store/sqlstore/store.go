@@ -13,12 +13,17 @@ type Store struct {
 	CreditCardRepository        *CreditCardRepository
 	SecretTextRepository        *SecretTextRepository
 	SecretBinaryRepository      *SecretBinaryRepository
+	UserRepository              *UserRepository
 }
 
 func NewStore(db *sql.DB) *Store {
 	return &Store{
 		db: db,
 	}
+}
+
+func (s *Store) Close() {
+	s.db.Close()
 }
 
 func (s *Store) LoginWithPassword() store.LoginWithPasswordRepository {
@@ -55,4 +60,13 @@ func (s *Store) SecretBinary() store.SecretBinaryRepository {
 		}
 	}
 	return s.SecretBinaryRepository
+}
+
+func (s *Store) User() store.UserRepository {
+	if s.UserRepository == nil {
+		s.UserRepository = &UserRepository{
+			store: s,
+		}
+	}
+	return s.UserRepository
 }

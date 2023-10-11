@@ -2,6 +2,7 @@ package server
 
 import (
 	"cenarius/internal/store"
+	"cenarius/internal/store/sqlstore"
 	"context"
 	"log"
 	"net"
@@ -22,6 +23,7 @@ const (
 	ctxKeyRequestID
 )
 
+// server server main struct
 type server struct {
 	config        *Config
 	logger        *logrus.Logger
@@ -40,14 +42,10 @@ func NewServer(config *Config) *server {
 		logger:     logrus.New(),
 		HTTPServer: &http.Server{Addr: config.Bind},
 	}
-	s.GRPCServer = grpc.NewServer(grpc.UnaryInterceptor(s.unaryInterceptor))
-	if config.TrustedSubnet != "" {
-		_, subnet, err := net.ParseCIDR(config.TrustedSubnet)
-		if err != nil {
-			log.Fatalf("Can't parse subnet from %s %v", config.TrustedSubnet, err)
-		}
-		s.allowedSubnet = subnet
-	}
+	s.configureLogger()
+	s.configureStore()
+	s.configureTrustedSubnets()
+
 	return s
 }
 
@@ -58,12 +56,14 @@ func (s *server) StartGRPCServer() {
 	if err != nil {
 		s.logger.Fatal(err)
 	}
+	s.GRPCServer = grpc.NewServer(grpc.UnaryInterceptor(s.unaryInterceptor))
 	if err := s.GRPCServer.Serve(listen); err != nil {
 		s.logger.Fatal(err)
 	}
 	s.logger.Infof("GRPC server stopped with config: %v\n", s.config)
 }
 
+// StopGRPCServer stops grpc server
 func (s *server) StopGRPCServer() {
 	s.GRPCServer.GracefulStop()
 }
@@ -90,7 +90,6 @@ func (s *server) StopHTTPServer() {
 
 // Start starts the server
 func (s *server) Start() error {
-	s.configureLogger()
 	switch {
 	case s.config.Mode == "GRPC":
 		s.StartGRPCServer()
@@ -103,6 +102,7 @@ func (s *server) Start() error {
 	return nil
 }
 
+// Shutdown shutdowns the server
 func (s *server) Shutdown() {
 	s.logger.Info("Shuting down...")
 	switch {
@@ -125,4 +125,25 @@ func (s *server) configureLogger() error {
 	}
 	s.logger.SetLevel(level)
 	return nil
+}
+
+// configureStore configures store
+func (s *server) configureStore() {
+	conn, err := sqlstore.NewPGConn(s.config.DatabaseDsn)
+	if err != nil {
+		s.logger.Errorf("Unable to connect to the database with: %v", s.config.DatabaseDsn)
+		s.logger.Fatal(err)
+	}
+	s.store = sqlstore.NewStore(conn)
+}
+
+// configureTrustedSubnets configures trusted subnets
+func (s *server) configureTrustedSubnets() {
+	if s.config.TrustedSubnet != "" {
+		_, subnet, err := net.ParseCIDR(s.config.TrustedSubnet)
+		if err != nil {
+			log.Fatalf("Can't parse subnet from %s %v", s.config.TrustedSubnet, err)
+		}
+		s.allowedSubnet = subnet
+	}
 }
