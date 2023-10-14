@@ -6,6 +6,7 @@ type Config struct {
 	LogLevel      string `json:"log_level"`
 	DatabaseDsn   string `json:"database_url"`
 	TrustedSubnet string `json:"trusted_subnet"`
+	SessionKey    string `json:"session_key"`
 }
 
 func NewConfig() *Config {
@@ -13,6 +14,7 @@ func NewConfig() *Config {
 		Bind:        ":8080",
 		Mode:        "HTTP",
 		LogLevel:    "INFO",
-		DatabaseDsn: "",
+		DatabaseDsn: "postgres://localhost/cenarius?sslmode=disable",
+		SessionKey:  "cenarius",
 	}
 }

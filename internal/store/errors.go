@@ -3,5 +3,7 @@ package store
 import "errors"
 
 var (
-	ErrRecordNotFound = errors.New("record not found")
+	ErrIncorrectPassword = errors.New("incorrect password")
+	ErrNotAuthenticated  = errors.New("user is not authenticated")
+	ErrUserAlredyExist   = errors.New("user already exist")
 )

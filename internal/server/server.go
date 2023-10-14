@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cenarius/internal/model"
 	"cenarius/internal/store"
 	"cenarius/internal/store/sqlstore"
 	"context"
@@ -38,9 +39,10 @@ type server struct {
 // NewServer returns new server object
 func NewServer(config *Config) *server {
 	s := &server{
-		config:     config,
-		logger:     logrus.New(),
-		HTTPServer: &http.Server{Addr: config.Bind},
+		config:       config,
+		logger:       logrus.New(),
+		HTTPServer:   &http.Server{Addr: config.Bind},
+		sessionStore: sessions.NewCookieStore([]byte(config.SessionKey)),
 	}
 	s.configureLogger()
 	s.configureStore()
@@ -146,4 +148,132 @@ func (s *server) configureTrustedSubnets() {
 		}
 		s.allowedSubnet = subnet
 	}
+}
+
+func (s *server) userRegister(ctx context.Context, u *model.User) (*model.User, int, error) {
+	if _, err := s.store.User().FindByLogin(ctx, u.Login); err == nil {
+		s.logger.Errorf("User already exist")
+		return nil, http.StatusConflict, store.ErrNotAuthenticated
+	}
+	if err := s.store.User().Create(ctx, u); err != nil {
+		s.logger.Errorf("Failed to create user %v: %v", u, err)
+		return nil, http.StatusBadRequest, err
+	}
+	s.logger.Infof("User created: %v", u)
+	return u, http.StatusAccepted, nil
+}
+
+func (s *server) userLogin(ctx context.Context, u *model.User) (*model.User, int, error) {
+	storageUser, err := s.store.User().FindByLogin(ctx, u.Login)
+	if err != nil {
+		s.logger.Errorf("Unknown login: %s", u.Login)
+		return nil, http.StatusUnauthorized, err
+	}
+	if !storageUser.ComparePassword(u.Password) {
+		s.logger.Errorf("Incorrect Password: %v", u.Password)
+		return nil, http.StatusUnauthorized, store.ErrIncorrectPassword
+	}
+	u.ID = storageUser.ID
+	u.Sanitaze()
+	return u, http.StatusOK, nil
+}
+
+func (s *server) addLoginWithPassword(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
+	if err := s.store.LoginWithPassword().Add(ctx, m); err != nil {
+		s.logger.Errorf("Failed to add LoginWithPassword %v: %v", m, err)
+		return nil, err
+	}
+	s.logger.Infof("LoginWithPassword created: %v", m)
+	return m, nil
+}
+
+func (s *server) addCreditCard(ctx context.Context, m *model.CreditCard) (*model.CreditCard, error) {
+	if err := s.store.CreditCard().Add(ctx, m); err != nil {
+		s.logger.Errorf("Failed to add CreditCard %v: %v", m, err)
+		return nil, err
+	}
+	s.logger.Infof("CreditCard created: %v", m)
+	return m, nil
+}
+
+func (s *server) addSecretText(ctx context.Context, m *model.SecretText) (*model.SecretText, error) {
+	if err := s.store.SecretText().Add(ctx, m); err != nil {
+		s.logger.Errorf("Failed to add SecretText %v: %v", m, err)
+		return nil, err
+	}
+	s.logger.Infof("SecretText created: %v", m)
+	return m, nil
+}
+
+func (s *server) addSecretBinary(ctx context.Context, m *model.SecretBinary) (*model.SecretBinary, error) {
+	if err := s.store.SecretBinary().Add(ctx, m); err != nil {
+		s.logger.Errorf("Failed to add SecretBinary %v: %v", m, err)
+		return nil, err
+	}
+	s.logger.Infof("SecretBinary created: %v", m)
+	return m, nil
+}
+
+func (s *server) updateLoginWithPassword(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
+	if err := s.store.LoginWithPassword().Update(ctx, m); err != nil {
+		s.logger.Errorf("Failed to add LoginWithPassword %v: %v", m, err)
+		return nil, err
+	}
+	s.logger.Infof("LoginWithPassword created: %v", m)
+	return m, nil
+}
+
+func (s *server) updateCreditCard(ctx context.Context, m *model.CreditCard) (*model.CreditCard, error) {
+	if err := s.store.CreditCard().Update(ctx, m); err != nil {
+		s.logger.Errorf("Failed to add CreditCard %v: %v", m, err)
+		return nil, err
+	}
+	s.logger.Infof("CreditCard created: %v", m)
+	return m, nil
+}
+
+func (s *server) updateSecretText(ctx context.Context, m *model.SecretText) (*model.SecretText, error) {
+	if err := s.store.SecretText().Update(ctx, m); err != nil {
+		s.logger.Errorf("Failed to add SecretText %v: %v", m, err)
+		return nil, err
+	}
+	s.logger.Infof("SecretText created: %v", m)
+	return m, nil
+}
+
+func (s *server) updateSecretBinary(ctx context.Context, m *model.SecretBinary) (*model.SecretBinary, error) {
+	if err := s.store.SecretBinary().Update(ctx, m); err != nil {
+		s.logger.Errorf("Failed to add SecretBinary %v: %v", m, err)
+		return nil, err
+	}
+	s.logger.Infof("SecretBinary created: %v", m)
+	return m, nil
+}
+
+func (s *server) deleteLoginWithPassword(ctx context.Context, id int) error {
+	if err := s.store.LoginWithPassword().Delete(ctx, id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *server) deleteCreditCard(ctx context.Context, id int) error {
+	if err := s.store.CreditCard().Delete(ctx, id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *server) deleteSecretText(ctx context.Context, id int) error {
+	if err := s.store.SecretText().Delete(ctx, id); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *server) deleteSecretBinary(ctx context.Context, id int) error {
+	if err := s.store.SecretBinary().Delete(ctx, id); err != nil {
+		return err
+	}
+	return nil
 }

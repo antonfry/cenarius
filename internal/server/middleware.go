@@ -1,6 +1,7 @@
 package server
 
 import (
+	"cenarius/internal/store"
 	"context"
 	"fmt"
 	"net/http"
@@ -28,12 +29,13 @@ func (s *server) authenticateUser(next http.Handler) http.Handler {
 		id, ok := session.Values["authorization"]
 		if !ok {
 			fmt.Println("Unable to get session value")
-			s.error(w, r, http.StatusUnauthorized, errNotAuthenticated)
+			s.error(w, r, http.StatusUnauthorized, store.ErrNotAuthenticated)
 			return
 		}
+		s.logger.Infof("Got id: %v", id)
 		u, err := s.store.User().FindByID(r.Context(), id.(int))
 		if err != nil {
-			fmt.Printf("Unable to find user: %v", err)
+			fmt.Printf("Unable to get user from context: %v", err)
 			s.error(w, r, http.StatusUnauthorized, err)
 			return
 		}
@@ -60,12 +62,13 @@ func (s *server) logRequest(next http.Handler) http.Handler {
 		responseWriter := &responseWriter{w, 0}
 		next.ServeHTTP(responseWriter, r)
 		logger.Infof(
-			"Request: %s %s %v %d %v",
+			"Request: %s %s %v %d %v %v",
 			r.Method,
 			r.RequestURI,
 			time.Since(start),
 			responseWriter.code,
 			http.StatusText(responseWriter.code),
+			r.UserAgent(),
 		)
 	})
 }
