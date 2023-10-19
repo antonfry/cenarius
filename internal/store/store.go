@@ -4,7 +4,7 @@ type Store interface {
 	LoginWithPassword() LoginWithPasswordRepository
 	CreditCard() CreditCardRepository
 	SecretText() SecretTextRepository
-	SecretBinary() SecretBinaryRepository
+	SecretFile() SecretFileRepository
 	// SecretData() SecretDataRepository
 	User() UserRepository
 	Close()

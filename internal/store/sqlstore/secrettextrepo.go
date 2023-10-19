@@ -2,7 +2,9 @@ package sqlstore
 
 import (
 	"cenarius/internal/model"
+	"cenarius/internal/store"
 	"context"
+	"database/sql"
 )
 
 type SecretTextRepository struct {
@@ -46,28 +48,48 @@ func (r *SecretTextRepository) Update(ctx context.Context, m *model.SecretText) 
 	return nil
 }
 
-func (r *SecretTextRepository) Delete(ctx context.Context, id int) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretText WHERE id = $1", id); err != nil {
+func (r *SecretTextRepository) Delete(ctx context.Context, m *model.SecretText) error {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretText WHERE id = $1 AND user_id = $2", m.ID, m.UserId); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *SecretTextRepository) GetByName(ctx context.Context, name string) (*model.SecretText, error) {
-	m := &model.SecretText{}
-	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT id, user_id, name, meta, text FROM SecretText WHERE name = $1", name,
-	).Scan(&m.ID, &m.UserId, &m.Name, &m.Meta, &m.Text); err != nil {
+func (r *SecretTextRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.SecretText, error) {
+	mm := make([]*model.SecretText, 0)
+	sql_string := "SELECT id, name, meta, text FROM SecretText WHERE user_id=$1"
+	if len(name) > 0 {
+		sql_string += "AND name like $2"
+	}
+	rows, err := r.store.db.QueryContext(
+		ctx, sql_string, id, name,
+	)
+	if err != nil {
 		return nil, err
 	}
-	return m, nil
+	defer rows.Close()
+	for rows.Next() {
+		m := &model.SecretText{}
+		m.UserId = id
+		err = rows.Scan(&m.ID, &m.Name, &m.Meta, &m.Text)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, store.ErrRecordNotFound
+			}
+			return nil, err
+		}
+		mm = append(mm, m)
+	}
+	if rows.Err() != nil {
+		return nil, store.ErrUnableToGetRows
+	}
+	return mm, nil
 }
 
-func (r *SecretTextRepository) GetByID(ctx context.Context, id int) (*model.SecretText, error) {
-	m := &model.SecretText{}
+func (r *SecretTextRepository) GetByID(ctx context.Context, m *model.SecretText) (*model.SecretText, error) {
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT id, user_id, name, meta, text FROM SecretText WHERE id = $1", id,
-	).Scan(&m.ID, &m.UserId, &m.Name, &m.Meta, &m.Text); err != nil {
+		ctx, "SELECT name, meta, text FROM SecretText WHERE id = $1 AND user_id = $2", m.ID, m.UserId,
+	).Scan(&m.Name, &m.Meta, &m.Text); err != nil {
 		return nil, err
 	}
 	return m, nil

@@ -12,7 +12,7 @@ type Store struct {
 	LoginWithPasswordRepository *LoginWithPasswordRepository
 	CreditCardRepository        *CreditCardRepository
 	SecretTextRepository        *SecretTextRepository
-	SecretBinaryRepository      *SecretBinaryRepository
+	SecretFileRepository        *SecretFileRepository
 	UserRepository              *UserRepository
 }
 
@@ -53,13 +53,13 @@ func (s *Store) SecretText() store.SecretTextRepository {
 	return s.SecretTextRepository
 }
 
-func (s *Store) SecretBinary() store.SecretBinaryRepository {
-	if s.SecretBinaryRepository == nil {
-		s.SecretBinaryRepository = &SecretBinaryRepository{
+func (s *Store) SecretFile() store.SecretFileRepository {
+	if s.SecretFileRepository == nil {
+		s.SecretFileRepository = &SecretFileRepository{
 			store: s,
 		}
 	}
-	return s.SecretBinaryRepository
+	return s.SecretFileRepository
 }
 
 func (s *Store) User() store.UserRepository {

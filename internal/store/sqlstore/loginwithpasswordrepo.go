@@ -2,7 +2,9 @@ package sqlstore
 
 import (
 	"cenarius/internal/model"
+	"cenarius/internal/store"
 	"context"
+	"database/sql"
 )
 
 type LoginWithPasswordRepository struct {
@@ -35,12 +37,12 @@ func (r *LoginWithPasswordRepository) Update(ctx context.Context, m *model.Login
 		return err
 	}
 	if _, err := r.store.db.ExecContext(
-		ctx, "UPDATE LoginWithPassword SET user_id=$1, name=$2, meta=$3, login=$4, password=$5 WHERE id=$6",
-		m.UserId,
+		ctx, "UPDATE LoginWithPassword SET name=$1, meta=$2, login=$3, password=$4 WHERE user_id=$5 AND id=$6",
 		m.Name,
 		m.Meta,
 		m.Login,
 		m.Password,
+		m.UserId,
 		m.ID,
 	); err != nil {
 		return err
@@ -48,28 +50,48 @@ func (r *LoginWithPasswordRepository) Update(ctx context.Context, m *model.Login
 	return nil
 }
 
-func (r *LoginWithPasswordRepository) Delete(ctx context.Context, id int) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM LoginWithPassword WHERE id = $1", id); err != nil {
+func (r *LoginWithPasswordRepository) Delete(ctx context.Context, m *model.LoginWithPassword) error {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.ID, m.UserId); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *LoginWithPasswordRepository) GetByName(ctx context.Context, name string) (*model.LoginWithPassword, error) {
-	m := &model.LoginWithPassword{}
-	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT id, user_id, name, meta, login, password FROM LoginWithPassword WHERE name = $1", name,
-	).Scan(&m.ID, &m.UserId, &m.Name, &m.Meta, &m.Login, &m.Password); err != nil {
+func (r *LoginWithPasswordRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.LoginWithPassword, error) {
+	mm := make([]*model.LoginWithPassword, 0)
+	sql_string := "SELECT id, name, meta, login, password FROM LoginWithPassword WHERE user_id=$1"
+	if len(name) > 0 {
+		sql_string += "AND name like $2"
+	}
+	rows, err := r.store.db.QueryContext(
+		ctx, sql_string, id, name,
+	)
+	if err != nil {
 		return nil, err
 	}
-	return m, nil
+	defer rows.Close()
+	for rows.Next() {
+		m := &model.LoginWithPassword{}
+		m.UserId = id
+		err = rows.Scan(&m.ID, &m.Name, &m.Meta, &m.Login, &m.Password)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, store.ErrRecordNotFound
+			}
+			return nil, err
+		}
+		mm = append(mm, m)
+	}
+	if rows.Err() != nil {
+		return nil, store.ErrUnableToGetRows
+	}
+	return mm, nil
 }
 
-func (r *LoginWithPasswordRepository) GetByID(ctx context.Context, id int) (*model.LoginWithPassword, error) {
-	m := &model.LoginWithPassword{}
+func (r *LoginWithPasswordRepository) GetByID(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT id, user_id, name, meta, login, password FROM LoginWithPassword WHERE id = $1", id,
-	).Scan(&m.ID, &m.UserId, &m.Name, &m.Meta, &m.Login, &m.Password); err != nil {
+		ctx, "SELECT name, meta, login, password FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.Name, m.UserId,
+	).Scan(&m.Name, &m.Meta, &m.Login, &m.Password); err != nil {
 		return nil, err
 	}
 	return m, nil

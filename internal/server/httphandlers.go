@@ -4,6 +4,7 @@ import (
 	"cenarius/internal/model"
 	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi"
 )
@@ -35,28 +36,36 @@ func (s *server) configureRouter() {
 func (s *server) privateRouter() *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(s.authenticateUser)
-	r.Get("/p", s.handleHealthCheck())
+	r.Get("/health", s.handleHealthCheck())
 
-	r.Get("/loginwithpassword/{id}", s.handleHealthCheck())
-	r.Get("/loginwithpassword/search/{name}", s.handleHealthCheck())
-	r.Put("/loginwithpassword", s.handleLoginWithPassword())
-	r.Post("/loginwithpassword", s.handleLoginWithPassword())
-	r.Delete("/loginwithpassword", s.handleLoginWithPassword())
+	r.Get("/loginwithpasswords", s.handleLoginWithPasswordSearch())
+	r.Get("/loginwithpassword/{id}", s.handleLoginWithPasswordWithID())
+	r.Get("/loginwithpassword/search/{name}", s.handleLoginWithPasswordSearch())
+	r.Put("/loginwithpassword", s.handleLoginWithPasswordWithBody())
+	r.Post("/loginwithpassword", s.handleLoginWithPasswordWithBody())
+	r.Delete("/loginwithpassword/{id}", s.handleLoginWithPasswordWithID())
 
-	r.Get("/creditcard/{id}", s.handleHealthCheck())
-	r.Put("/creditcard", s.handleAddCreditCard())
-	r.Post("/creditcard", s.handleHealthCheck())
-	r.Delete("/creditcard", s.handleDeleteCreditCard())
+	r.Get("/creditcards", s.handleCreditCardSearch())
+	r.Get("/creditcard/{id}", s.handleCreditCardWithID())
+	r.Get("/creditcard/search/{name}", s.handleCreditCardSearch())
+	r.Put("/creditcard", s.handleCreditCardWithBody())
+	r.Post("/creditcard", s.handleCreditCardWithBody())
+	r.Delete("/creditcard/{id}", s.handleCreditCardWithID())
 
-	r.Get("/secrettext/{id}", s.handleHealthCheck())
-	r.Put("/secrettext", s.handleAddSecretText())
-	r.Post("/secrettext", s.handleHealthCheck())
-	r.Delete("/secrettext", s.handleDeleteSecretText())
+	r.Get("/secrettexts", s.handleSecretFileSearch())
+	r.Get("/secrettext/{id}", s.handleSecretTextWithID())
+	r.Get("/secrettext/search/{name}", s.handleSecretTextSearch())
+	r.Put("/secrettext", s.handleSecretTextWithBody())
+	r.Post("/secrettext", s.handleSecretTextWithBody())
+	r.Delete("/secrettext/{id}", s.handleSecretTextWithID())
 
-	r.Get("/secretbinary/{id}", s.handleHealthCheck())
-	r.Put("/secretbinary", s.handleAddSecretBinary())
-	r.Post("/secretbinary", s.handleHealthCheck())
-	r.Delete("/secretbinary", s.handleDeleteSecretBinary())
+	r.Get("/secretfiles", s.handleSecretFileSearch())
+	r.Get("/secretfile/{id}", s.handleSecretFileWithID())
+	r.Get("/secretfile/search/{name}", s.handleSecretFileSearch())
+	r.Put("/secretfile", s.handleSecretFileWithBody())
+	r.Post("/secretfile", s.handleSecretFileWithBody())
+	r.Delete("/secretfile/{id}", s.handleSecretFileWithID())
+
 	return r
 }
 
@@ -124,7 +133,7 @@ func (s *server) handleHealthCheck() http.HandlerFunc {
 	}
 }
 
-func (s *server) handleLoginWithPassword() http.HandlerFunc {
+func (s *server) handleLoginWithPasswordWithBody() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := &model.LoginWithPassword{}
 		if err := json.NewDecoder(r.Body).Decode(m); err != nil {
@@ -134,10 +143,6 @@ func (s *server) handleLoginWithPassword() http.HandlerFunc {
 		user := r.Context().Value(ctxKeyUser)
 		m.UserId = user.(*model.User).ID
 		switch r.Method {
-		case "GET":
-			if _, err := s.addLoginWithPassword(r.Context(), m); err != nil {
-				s.error(w, r, http.StatusInternalServerError, err)
-			}
 		case "PUT":
 			if _, err := s.addLoginWithPassword(r.Context(), m); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
@@ -146,17 +151,47 @@ func (s *server) handleLoginWithPassword() http.HandlerFunc {
 			if _, err := s.updateLoginWithPassword(r.Context(), m); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 			}
-		case "DELETE":
-			if err := s.deleteLoginWithPassword(r.Context(), m.ID); err != nil {
-				s.error(w, r, http.StatusInternalServerError, err)
-			}
 		}
-
 		s.respond(w, r, http.StatusOK, m)
 	}
 }
 
-func (s *server) handleAddCreditCard() http.HandlerFunc {
+func (s *server) handleLoginWithPasswordWithID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := &model.LoginWithPassword{}
+		var err error
+		user := r.Context().Value(ctxKeyUser)
+		m.UserId = user.(*model.User).ID
+		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+		}
+		switch r.Method {
+		case "GET":
+			if _, err := s.getLoginWithPassword(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		case "DELETE":
+			if err := s.deleteLoginWithPassword(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		}
+		s.respond(w, r, http.StatusOK, m)
+	}
+}
+
+func (s *server) handleLoginWithPasswordSearch() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := r.Context().Value(ctxKeyUser)
+		userId := user.(*model.User).ID
+		name := chi.URLParam(r, "name")
+		if _, err := s.searchLoginWithPassword(r.Context(), name, userId); err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+		}
+	}
+}
+
+func (s *server) handleCreditCardWithBody() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := &model.CreditCard{}
 		if err := json.NewDecoder(r.Body).Decode(m); err != nil {
@@ -165,14 +200,56 @@ func (s *server) handleAddCreditCard() http.HandlerFunc {
 		}
 		user := r.Context().Value(ctxKeyUser)
 		m.UserId = user.(*model.User).ID
-		if _, err := s.addCreditCard(r.Context(), m); err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
+		switch r.Method {
+		case "PUT":
+			if _, err := s.addCreditCard(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		case "POST":
+			if _, err := s.updateCreditCard(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
 		}
-		s.respond(w, r, http.StatusNoContent, nil)
+		s.respond(w, r, http.StatusOK, m)
 	}
 }
 
-func (s *server) handleAddSecretText() http.HandlerFunc {
+func (s *server) handleCreditCardWithID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := &model.CreditCard{}
+		var err error
+		user := r.Context().Value(ctxKeyUser)
+		m.UserId = user.(*model.User).ID
+		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+		}
+		switch r.Method {
+		case "GET":
+			if _, err := s.getCreditCard(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		case "DELETE":
+			if err := s.deleteCreditCard(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		}
+		s.respond(w, r, http.StatusOK, m)
+	}
+}
+
+func (s *server) handleCreditCardSearch() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := r.Context().Value(ctxKeyUser)
+		userId := user.(*model.User).ID
+		name := chi.URLParam(r, "name")
+		if _, err := s.searchCreditCard(r.Context(), name, userId); err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+		}
+	}
+}
+
+func (s *server) handleSecretTextWithBody() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := &model.SecretText{}
 		if err := json.NewDecoder(r.Body).Decode(m); err != nil {
@@ -181,89 +258,111 @@ func (s *server) handleAddSecretText() http.HandlerFunc {
 		}
 		user := r.Context().Value(ctxKeyUser)
 		m.UserId = user.(*model.User).ID
-		if _, err := s.addSecretText(r.Context(), m); err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
+		switch r.Method {
+		case "PUT":
+			if _, err := s.addSecretText(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		case "POST":
+			if _, err := s.updateSecretText(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
 		}
-		s.respond(w, r, http.StatusNoContent, nil)
+		s.respond(w, r, http.StatusOK, m)
 	}
 }
 
-func (s *server) handleAddSecretBinary() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		m := &model.SecretBinary{}
-		if err := json.NewDecoder(r.Body).Decode(m); err != nil {
-			s.logger.Errorf("Unable to parse body in handleAddSecretBinary: %v", err)
-			s.error(w, r, http.StatusBadRequest, err)
-		}
-		user := r.Context().Value(ctxKeyUser)
-		m.UserId = user.(*model.User).ID
-		if _, err := s.addSecretBinary(r.Context(), m); err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
-		}
-		s.respond(w, r, http.StatusNoContent, nil)
-	}
-}
-
-func (s *server) handleDeleteLoginWithPassword() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		m := &model.LoginWithPassword{}
-		if err := json.NewDecoder(r.Body).Decode(m); err != nil {
-			s.logger.Errorf("Unable to parse body in handleDeleteLoginWithPassword: %v", err)
-			s.error(w, r, http.StatusBadRequest, err)
-		}
-		user := r.Context().Value(ctxKeyUser)
-		m.UserId = user.(*model.User).ID
-		if err := s.deleteLoginWithPassword(r.Context(), m.ID); err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
-		}
-		s.respond(w, r, http.StatusNoContent, m)
-	}
-}
-
-func (s *server) handleDeleteCreditCard() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		m := &model.LoginWithPassword{}
-		if err := json.NewDecoder(r.Body).Decode(m); err != nil {
-			s.logger.Errorf("Unable to parse body in handleDeleteLoginWithPassword: %v", err)
-			s.error(w, r, http.StatusBadRequest, err)
-		}
-		user := r.Context().Value(ctxKeyUser)
-		m.UserId = user.(*model.User).ID
-		if err := s.deleteCreditCard(r.Context(), m.ID); err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
-		}
-		s.respond(w, r, http.StatusNoContent, m)
-	}
-}
-
-func (s *server) handleDeleteSecretText() http.HandlerFunc {
+func (s *server) handleSecretTextWithID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := &model.SecretText{}
-		if err := json.NewDecoder(r.Body).Decode(m); err != nil {
-			s.logger.Errorf("Unable to parse body in handleDeleteLoginWithPassword: %v", err)
-			s.error(w, r, http.StatusBadRequest, err)
-		}
+		var err error
 		user := r.Context().Value(ctxKeyUser)
 		m.UserId = user.(*model.User).ID
-		if err := s.deleteSecretText(r.Context(), m.ID); err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
+		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
 		}
-		s.respond(w, r, http.StatusNoContent, m)
+		switch r.Method {
+		case "GET":
+			if _, err := s.getSecretText(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		case "DELETE":
+			if err := s.deleteSecretText(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		}
+		s.respond(w, r, http.StatusOK, m)
 	}
 }
 
-func (s *server) handleDeleteSecretBinary() http.HandlerFunc {
+func (s *server) handleSecretTextSearch() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := &model.SecretBinary{}
+		user := r.Context().Value(ctxKeyUser)
+		userId := user.(*model.User).ID
+		name := chi.URLParam(r, "name")
+		if _, err := s.searchSecretText(r.Context(), name, userId); err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+		}
+	}
+}
+
+func (s *server) handleSecretFileWithBody() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := &model.SecretFile{}
 		if err := json.NewDecoder(r.Body).Decode(m); err != nil {
-			s.logger.Errorf("Unable to parse body in handleDeleteLoginWithPassword: %v", err)
+			s.logger.Errorf("Unable to parse body in handleAddSecretFile: %v", err)
 			s.error(w, r, http.StatusBadRequest, err)
 		}
 		user := r.Context().Value(ctxKeyUser)
 		m.UserId = user.(*model.User).ID
-		if err := s.deleteSecretBinary(r.Context(), m.ID); err != nil {
+		switch r.Method {
+		case "PUT":
+			if _, err := s.addSecretFile(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		case "POST":
+			if _, err := s.updateSecretFile(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+		}
+		s.respond(w, r, http.StatusOK, m)
+	}
+}
+
+func (s *server) handleSecretFileWithID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		m := &model.SecretFile{}
+		var err error
+		user := r.Context().Value(ctxKeyUser)
+		m.UserId = user.(*model.User).ID
+		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+		}
+		switch r.Method {
+		case "GET":
+			if m, err = s.getSecretFile(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+			uploadWS(w, r, m)
+			return
+		case "DELETE":
+			if err := s.deleteSecretFile(r.Context(), m); err != nil {
+				s.error(w, r, http.StatusInternalServerError, err)
+			}
+			s.respond(w, r, http.StatusOK, m)
+		}
+	}
+}
+
+func (s *server) handleSecretFileSearch() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user := r.Context().Value(ctxKeyUser)
+		userId := user.(*model.User).ID
+		name := chi.URLParam(r, "name")
+		if _, err := s.searchSecretFile(r.Context(), name, userId); err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
 		}
-		s.respond(w, r, http.StatusNoContent, m)
 	}
 }

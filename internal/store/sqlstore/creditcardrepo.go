@@ -2,7 +2,9 @@ package sqlstore
 
 import (
 	"cenarius/internal/model"
+	"cenarius/internal/store"
 	"context"
+	"database/sql"
 )
 
 type CreditCardRepository struct {
@@ -52,28 +54,48 @@ func (r *CreditCardRepository) Update(ctx context.Context, m *model.CreditCard) 
 	return nil
 }
 
-func (r *CreditCardRepository) Delete(ctx context.Context, id int) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM CreditCard WHERE id = $1", id); err != nil {
+func (r *CreditCardRepository) Delete(ctx context.Context, m *model.CreditCard) error {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM CreditCard WHERE id = $1 AND user_id = $2", m.ID, m.UserId); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (r *CreditCardRepository) GetByName(ctx context.Context, name string) (*model.CreditCard, error) {
-	m := &model.CreditCard{}
-	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT id, user_id, name, meta, login, password FROM CreditCard WHERE name = $1", name,
-	).Scan(&m.ID, &m.UserId, &m.Name, &m.Meta, &m.OwnerName, &m.OwnerLastName, &m.Number, &m.CVC); err != nil {
+func (r *CreditCardRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.CreditCard, error) {
+	mm := make([]*model.CreditCard, 0)
+	sql_string := "SELECT id, name, meta, owner_name, owner_last_name, number, cvc FROM CreditCard WHERE user_id=$1"
+	if len(name) > 0 {
+		sql_string += "AND name like $2"
+	}
+	rows, err := r.store.db.QueryContext(
+		ctx, sql_string, id, name,
+	)
+	if err != nil {
 		return nil, err
 	}
-	return m, nil
+	defer rows.Close()
+	for rows.Next() {
+		m := &model.CreditCard{}
+		m.UserId = id
+		err = rows.Scan(&m.ID, &m.Name, &m.Meta, &m.OwnerName, &m.OwnerLastName, &m.Number, &m.CVC)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return nil, store.ErrRecordNotFound
+			}
+			return nil, err
+		}
+		mm = append(mm, m)
+	}
+	if rows.Err() != nil {
+		return nil, store.ErrUnableToGetRows
+	}
+	return mm, nil
 }
 
-func (r *CreditCardRepository) GetByID(ctx context.Context, id int) (*model.CreditCard, error) {
-	m := &model.CreditCard{}
+func (r *CreditCardRepository) GetByID(ctx context.Context, m *model.CreditCard) (*model.CreditCard, error) {
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT id, user_id, name, meta, login, password FROM CreditCard WHERE id = $1", id,
-	).Scan(&m.ID, &m.UserId, &m.Name, &m.Meta, &m.OwnerName, &m.OwnerLastName, &m.Number, &m.CVC); err != nil {
+		ctx, "SELECT name, meta, login, password FROM CreditCard WHERE id = $1 AND user_id = $2", m.Name, m.UserId,
+	).Scan(&m.Name, &m.Meta, &m.OwnerName, &m.OwnerLastName, &m.Number, &m.CVC); err != nil {
 		return nil, err
 	}
 	return m, nil
