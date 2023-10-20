@@ -5,6 +5,8 @@ import (
 	"cenarius/internal/store"
 	"context"
 	"database/sql"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type LoginWithPasswordRepository struct {
@@ -60,13 +62,17 @@ func (r *LoginWithPasswordRepository) Delete(ctx context.Context, m *model.Login
 func (r *LoginWithPasswordRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.LoginWithPassword, error) {
 	mm := make([]*model.LoginWithPassword, 0)
 	sql_string := "SELECT id, name, meta, login, password FROM LoginWithPassword WHERE user_id=$1"
-	if len(name) > 0 {
-		sql_string += "AND name like $2"
+	args := []any{id}
+	if name != "" {
+		sql_string += " AND name like $2"
+		args = append(args, name)
 	}
+	log.Debugf(sql_string)
 	rows, err := r.store.db.QueryContext(
-		ctx, sql_string, id, name,
+		ctx, sql_string, args...,
 	)
 	if err != nil {
+		log.Errorf("Unable to QueryContext in (r *LoginWithPasswordRepository) SearchByName: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -90,7 +96,7 @@ func (r *LoginWithPasswordRepository) SearchByName(ctx context.Context, name str
 
 func (r *LoginWithPasswordRepository) GetByID(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT name, meta, login, password FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.Name, m.UserId,
+		ctx, "SELECT name, meta, login, password FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.ID, m.UserId,
 	).Scan(&m.Name, &m.Meta, &m.Login, &m.Password); err != nil {
 		return nil, err
 	}

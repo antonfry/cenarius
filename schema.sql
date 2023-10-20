@@ -35,11 +35,11 @@ CREATE TABLE SecretText(
     "created_at" timestamp default NOW()
 );
 
-CREATE TABLE SecretBinary(
+CREATE TABLE SecretFile(
     "id" bigserial not null primary key,
     "user_id" int,
     "name" varchar,
     "meta" text,
-    "binary" bytea,
+    "path" varchar,
     "created_at" timestamp default NOW()
 );

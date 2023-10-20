@@ -27,7 +27,7 @@ func (s *LoginWithPassword) Validate() error {
 	return validation.ValidateStruct(
 		s,
 		validation.Field(&s.Login, validation.Required, is.Alphanumeric),
-		validation.Field(&s.Password, validation.Required, is.ASCII),
+		validation.Field(&s.Password, validation.Required, is.Alphanumeric),
 	)
 }
 
