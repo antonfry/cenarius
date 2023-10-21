@@ -44,8 +44,8 @@ func (s *CreditCard) Validate() error {
 		s,
 		validation.Field(&s.OwnerName, validation.Required, is.ASCII),
 		validation.Field(&s.OwnerLastName, validation.Required, is.ASCII),
-		validation.Field(&s.Number, validation.Required),
-		validation.Field(&s.CVC, validation.Required, validation.Length(3, 3)),
+		validation.Field(&s.Number, validation.Required, validation.Min(1000000000000000), validation.Max(9999999999999999)),
+		validation.Field(&s.CVC, validation.Required, validation.Min(100), validation.Max(999)),
 	)
 }
 
@@ -57,7 +57,7 @@ type SecretText struct {
 func (s *SecretText) Validate() error {
 	return validation.ValidateStruct(
 		s,
-		validation.Field(&s.Text, validation.Required, is.Alphanumeric),
+		validation.Field(&s.Text, validation.Required, is.ASCII),
 	)
 }
 
@@ -69,7 +69,7 @@ type SecretFile struct {
 func (s *SecretFile) Validate() error {
 	return validation.ValidateStruct(
 		s,
-		validation.Field(&s.Path, validation.Required),
+		validation.Field(&s.Path, validation.Required, validation.Length(1, 30), is.RequestURI),
 	)
 }
 

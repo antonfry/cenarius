@@ -52,7 +52,7 @@ func (s *server) privateRouter() *chi.Mux {
 	r.Post("/creditcard", s.handleCreditCardWithBody())
 	r.Delete("/creditcard/{id}", s.handleCreditCardWithID())
 
-	r.Get("/secrettexts", s.handleSecretFileSearch())
+	r.Get("/secrettexts", s.handleSecretTextSearch())
 	r.Get("/secrettext/{id}", s.handleSecretTextWithID())
 	r.Get("/secrettext/search/{name}", s.handleSecretTextSearch())
 	r.Put("/secrettext", s.handleSecretTextWithBody())
@@ -362,6 +362,7 @@ func (s *server) handleSecretFileSearch() http.HandlerFunc {
 		userId := user.(*model.User).ID
 		name := chi.URLParam(r, "name")
 		if _, err := s.searchSecretFile(r.Context(), name, userId); err != nil {
+			s.logger.Errorf("handleSecretFileSearch: %s", err.Error())
 			s.error(w, r, http.StatusInternalServerError, err)
 		}
 	}

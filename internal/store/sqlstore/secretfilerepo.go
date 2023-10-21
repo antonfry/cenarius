@@ -36,7 +36,7 @@ func (r *SecretFileRepository) Update(ctx context.Context, m *model.SecretFile) 
 		return err
 	}
 	if _, err := r.store.db.ExecContext(
-		ctx, "UPDATE SecretText SET user_id=$1, name=$2, meta=$3, path=$4 WHERE id=$5",
+		ctx, "UPDATE SecretFile SET user_id=$1, name=$2, meta=$3, path=$4 WHERE id=$5",
 		m.UserId,
 		m.Name,
 		m.Meta,
@@ -57,9 +57,9 @@ func (r *SecretFileRepository) Delete(ctx context.Context, m *model.SecretFile) 
 
 func (r *SecretFileRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.SecretFile, error) {
 	mm := make([]*model.SecretFile, 0)
-	sql_string := "SELECT id, name, meta, path FROM SecretText WHERE user_id=$1"
-	if len(name) > 0 {
-		sql_string += "AND name like $2"
+	sql_string := "SELECT id, name, meta, path FROM SecretFile WHERE user_id=$1"
+	if name != "" {
+		sql_string += " AND name like $2"
 	}
 	rows, err := r.store.db.QueryContext(
 		ctx, sql_string, id, name,

@@ -64,8 +64,8 @@ func (r *CreditCardRepository) Delete(ctx context.Context, m *model.CreditCard) 
 func (r *CreditCardRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.CreditCard, error) {
 	mm := make([]*model.CreditCard, 0)
 	sql_string := "SELECT id, name, meta, owner_name, owner_last_name, number, cvc FROM CreditCard WHERE user_id=$1"
-	if len(name) > 0 {
-		sql_string += "AND name like $2"
+	if name != "" {
+		sql_string += " AND name like $2"
 	}
 	rows, err := r.store.db.QueryContext(
 		ctx, sql_string, id, name,
@@ -94,7 +94,7 @@ func (r *CreditCardRepository) SearchByName(ctx context.Context, name string, id
 
 func (r *CreditCardRepository) GetByID(ctx context.Context, m *model.CreditCard) (*model.CreditCard, error) {
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT name, meta, login, password FROM CreditCard WHERE id = $1 AND user_id = $2", m.Name, m.UserId,
+		ctx, "SELECT name, meta, owner_name, owner_last_name, number, cvc FROM CreditCard WHERE id = $1 AND user_id = $2", m.ID, m.UserId,
 	).Scan(&m.Name, &m.Meta, &m.OwnerName, &m.OwnerLastName, &m.Number, &m.CVC); err != nil {
 		return nil, err
 	}
