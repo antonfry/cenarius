@@ -75,9 +75,8 @@ func (s *server) saveSession(w http.ResponseWriter, r *http.Request, u *model.Us
 		s.logger.Errorf("unable to get session %v", sessionName)
 		return err
 	}
-	s.logger.Infof("Saving session: %v", u.ID)
+	s.logger.Debugf("Saving session: %v", u.ID)
 	session.Values["authorization"] = u.ID
-	s.logger.Infof("Saving session: %v", session.Values["authorization"])
 	if err := s.sessionStore.Save(r, w, session); err != nil {
 		s.logger.Errorf("unable to save session for user %v", u)
 		return err
@@ -91,6 +90,7 @@ func (s *server) handleUserRegister() http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(u); err != nil {
 			s.logger.Errorf("Unable to parse body: %v", err)
 			s.error(w, r, http.StatusBadRequest, err)
+			return
 		}
 		u, code, err := s.userRegister(r.Context(), u)
 		if err != nil {
@@ -108,6 +108,7 @@ func (s *server) handleUserRegister() http.HandlerFunc {
 
 func (s *server) handleUserLogin() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		s.logger.Info("handleUserLogin is working")
 		u := &model.User{}
 		if err := json.NewDecoder(r.Body).Decode(u); err != nil {
 			s.logger.Errorf("Unable to parse body: %v", err)
@@ -362,7 +363,7 @@ func (s *server) handleSecretFileSearch() http.HandlerFunc {
 		userId := user.(*model.User).ID
 		name := chi.URLParam(r, "name")
 		if _, err := s.searchSecretFile(r.Context(), name, userId); err != nil {
-			s.logger.Errorf("handleSecretFileSearch: %s", err.Error())
+			s.logger.Errorf("func handleSecretFileSearch: %s", err.Error())
 			s.error(w, r, http.StatusInternalServerError, err)
 		}
 	}

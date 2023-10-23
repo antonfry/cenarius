@@ -1,17 +1,23 @@
 package agent
 
 type Config struct {
-	ServerURL string `json:"server_url"`
-	Mode      string `json:"mode"`
-	LogLevel  string `json:"log_level"`
-	Secret    string `json:"secret"`
+	Host     string `json:"host"`
+	Mode     string `json:"mode"`
+	LogLevel string `json:"log_level"`
+	Secret   string `json:"secret"`
+	Encode   bool   `json:"encode"`
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
 func NewConfig() *Config {
 	return &Config{
-		ServerURL: "localhost:8080",
-		Mode:      "HTTP",
-		LogLevel:  "INFO",
-		Secret:    "",
+		Host:     "localhost:8080",
+		Mode:     "HTTP",
+		LogLevel: "INFO",
+		Secret:   "",
+		Encode:   true,
+		Login:    "AgentUser",
+		Password: "AgentPassword",
 	}
 }
