@@ -7,7 +7,13 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
+	"github.com/google/uuid"
 )
+
+type cenariusSession struct {
+	userId int
+	secret string
+}
 
 func (s *server) error(w http.ResponseWriter, r *http.Request, code int, err error) {
 	s.respond(w, r, code, map[string]string{"error": err.Error()})
@@ -75,8 +81,11 @@ func (s *server) saveSession(w http.ResponseWriter, r *http.Request, u *model.Us
 		s.logger.Errorf("unable to get session %v", sessionName)
 		return err
 	}
+	sessionToken := uuid.NewString()
+	s.logger.Infof("server.saveSession sessionToken: %s", sessionToken)
 	s.logger.Debugf("Saving session: %v", u.ID)
-	session.Values["authorization"] = u.ID
+	session.Values[sessionName] = &cenariusSession{userId: u.ID, secret: sessionToken}
+	session.Options.MaxAge = 60
 	if err := s.sessionStore.Save(r, w, session); err != nil {
 		s.logger.Errorf("unable to save session for user %v", u)
 		return err
@@ -186,7 +195,9 @@ func (s *server) handleLoginWithPasswordSearch() http.HandlerFunc {
 		user := r.Context().Value(ctxKeyUser)
 		userId := user.(*model.User).ID
 		name := chi.URLParam(r, "name")
+		s.logger.Infof("server.handleLoginWithPasswordSearch url param: %s", name)
 		if _, err := s.searchLoginWithPassword(r.Context(), name, userId); err != nil {
+			s.logger.Errorf("server.handleLoginWithPasswordSearch: %v", err)
 			s.error(w, r, http.StatusInternalServerError, err)
 		}
 	}

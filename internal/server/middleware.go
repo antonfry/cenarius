@@ -3,7 +3,6 @@ package server
 import (
 	"cenarius/internal/store"
 	"context"
-	"fmt"
 	"net/http"
 	"time"
 
@@ -26,20 +25,33 @@ func (s *server) authenticateUser(next http.Handler) http.Handler {
 			s.error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		id, ok := session.Values["authorization"]
+		s.logger.Infof("server.authenticateUser session.Values: %v", session.Values)
+		c, ok := session.Values[sessionName]
 		if !ok {
-			fmt.Println("Unable to get session value")
+			s.logger.Errorf("Unable to get session value")
 			s.error(w, r, http.StatusUnauthorized, store.ErrNotAuthenticated)
 			return
 		}
-		s.logger.Infof("Got id: %v", id)
-		u, err := s.store.User().FindByID(r.Context(), id.(int))
+
+		sessionData, ok := c.(cenariusSession)
+		if !ok {
+			s.logger.Errorf("Unable to determine session value")
+			s.error(w, r, http.StatusUnauthorized, store.ErrNotAuthenticated)
+			return
+		}
+		s.logger.Infof("Got cookie: %v", c)
+		idInt, ok := c
+		if !ok {
+			s.error(w, r, http.StatusBadRequest, store.ErrNotAuthenticated)
+			return
+		}
+		u, err := s.store.User().FindByID(r.Context(), idInt)
 		if err != nil {
-			fmt.Printf("Unable to get user from context: %v", err)
+			s.logger.Errorf("Unable to find user from session in store : %v", err)
 			s.error(w, r, http.StatusUnauthorized, err)
 			return
 		}
-
+		s.logger.Info("server.authenticateUser ok")
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyUser, u)))
 	})
 }

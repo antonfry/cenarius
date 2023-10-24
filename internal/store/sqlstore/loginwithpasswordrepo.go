@@ -73,6 +73,7 @@ func (r *LoginWithPasswordRepository) SearchByName(ctx context.Context, name str
 	)
 	if err != nil {
 		log.Errorf("Unable to QueryContext in (r *LoginWithPasswordRepository) SearchByName: %v", err)
+		log.Errorf("sqlstore.LoginWithPasswordRepository.SearchByName 1: %v", err)
 		return nil, err
 	}
 	defer rows.Close()
@@ -84,6 +85,7 @@ func (r *LoginWithPasswordRepository) SearchByName(ctx context.Context, name str
 			if err == sql.ErrNoRows {
 				return nil, store.ErrRecordNotFound
 			}
+			log.Errorf("sqlstore.LoginWithPasswordRepository.SearchByName 2: %v", err)
 			return nil, err
 		}
 		mm = append(mm, m)

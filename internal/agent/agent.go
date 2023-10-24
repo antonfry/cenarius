@@ -8,7 +8,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"time"
 
 	"github.com/sirupsen/logrus"
@@ -22,8 +24,12 @@ type agent struct {
 
 // NewServer returns new server object
 func NewAgent(config *Config) *agent {
+	jar, err := cookiejar.New(nil)
+	if err != nil {
+		log.Fatal("unable to inizialize cookiejar")
+	}
 	a := &agent{
-		client: http.Client{},
+		client: http.Client{Jar: jar},
 		config: config,
 		logger: logrus.New(),
 	}
@@ -35,8 +41,17 @@ func (a *agent) Start() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*2)
 	defer cancel()
 	a.configureLogger()
-	//a.register(ctx)
-	a.getLogingWithPassword(ctx)
+	a.login(ctx)
+	switch a.config.Action {
+	case "list":
+		a.listLogingWithPassword(ctx)
+	case "get":
+		a.getLogingWithPassword(ctx)
+	case "add":
+		a.addLogingWithPassword(ctx)
+	case "delete":
+		a.deleteLogingWithPassword(ctx)
+	}
 	return nil
 }
 
@@ -116,12 +131,27 @@ func (a *agent) register(ctx context.Context) {
 }
 
 func (a *agent) login(ctx context.Context) {
-	uri := "api/v1/user/register"
+	uri := "api/v1/user/login"
 	m := &model.User{Login: a.config.Login, Password: a.config.Password}
 	a.sendRequest(ctx, uri, http.MethodPost, m)
 }
 
+func (a *agent) listLogingWithPassword(ctx context.Context) {
+	uri := "api/v1/private/loginwithpasswords"
+	a.sendRequest(ctx, uri, http.MethodGet, nil)
+}
+
 func (a *agent) getLogingWithPassword(ctx context.Context) {
+	uri := "api/v1/private/loginwithpasswords"
+	a.sendRequest(ctx, uri, http.MethodGet, nil)
+}
+
+func (a *agent) addLogingWithPassword(ctx context.Context) {
+	uri := "api/v1/private/loginwithpasswords"
+	a.sendRequest(ctx, uri, http.MethodGet, nil)
+}
+
+func (a *agent) deleteLogingWithPassword(ctx context.Context) {
 	uri := "api/v1/private/loginwithpasswords"
 	a.sendRequest(ctx, uri, http.MethodGet, nil)
 }

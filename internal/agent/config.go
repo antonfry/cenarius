@@ -8,6 +8,7 @@ type Config struct {
 	Encode   bool   `json:"encode"`
 	Login    string `json:"login"`
 	Password string `json:"password"`
+	Action   string `json:"action"`
 }
 
 func NewConfig() *Config {
