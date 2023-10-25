@@ -7,7 +7,6 @@ import (
 	"strconv"
 
 	"github.com/go-chi/chi"
-	"github.com/google/uuid"
 )
 
 type cenariusSession struct {
@@ -31,7 +30,6 @@ func (s *server) configureRouter() {
 	s.router.Use(s.logRequest)
 	s.router.Use(gzipHandle)
 	s.router.Use(s.setContentType)
-	s.router.Post("/api/v1/user/login", s.handleUserLogin())
 	s.router.Post("/api/v1/user/register", s.handleUserRegister())
 	s.router.Get("/ping", s.handleHealthCheck())
 
@@ -75,24 +73,6 @@ func (s *server) privateRouter() *chi.Mux {
 	return r
 }
 
-func (s *server) saveSession(w http.ResponseWriter, r *http.Request, u *model.User) error {
-	session, err := s.sessionStore.Get(r, sessionName)
-	if err != nil {
-		s.logger.Errorf("unable to get session %v", sessionName)
-		return err
-	}
-	sessionToken := uuid.NewString()
-	s.logger.Infof("server.saveSession sessionToken: %s", sessionToken)
-	s.logger.Debugf("Saving session: %v", u.ID)
-	session.Values[sessionName] = &cenariusSession{userId: u.ID, secret: sessionToken}
-	session.Options.MaxAge = 60
-	if err := s.sessionStore.Save(r, w, session); err != nil {
-		s.logger.Errorf("unable to save session for user %v", u)
-		return err
-	}
-	return nil
-}
-
 func (s *server) handleUserRegister() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		u := &model.User{}
@@ -104,33 +84,6 @@ func (s *server) handleUserRegister() http.HandlerFunc {
 		u, code, err := s.userRegister(r.Context(), u)
 		if err != nil {
 			s.error(w, r, code, err)
-			return
-		}
-		err = s.saveSession(w, r, u)
-		if err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-		s.respond(w, r, http.StatusOK, u)
-	}
-}
-
-func (s *server) handleUserLogin() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Info("handleUserLogin is working")
-		u := &model.User{}
-		if err := json.NewDecoder(r.Body).Decode(u); err != nil {
-			s.logger.Errorf("Unable to parse body: %v", err)
-			s.error(w, r, http.StatusBadRequest, err)
-		}
-		u, code, err := s.userLogin(r.Context(), u)
-		if err != nil {
-			s.error(w, r, code, err)
-			return
-		}
-		err = s.saveSession(w, r, u)
-		if err != nil {
-			s.error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		s.respond(w, r, http.StatusOK, u)
@@ -192,14 +145,17 @@ func (s *server) handleLoginWithPasswordWithID() http.HandlerFunc {
 
 func (s *server) handleLoginWithPasswordSearch() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		s.logger.Info("server.handleLoginWithPasswordSearch is working")
 		user := r.Context().Value(ctxKeyUser)
 		userId := user.(*model.User).ID
 		name := chi.URLParam(r, "name")
 		s.logger.Infof("server.handleLoginWithPasswordSearch url param: %s", name)
-		if _, err := s.searchLoginWithPassword(r.Context(), name, userId); err != nil {
+		result, err := s.searchLoginWithPassword(r.Context(), name, userId)
+		if err != nil {
 			s.logger.Errorf("server.handleLoginWithPasswordSearch: %v", err)
 			s.error(w, r, http.StatusInternalServerError, err)
 		}
+		s.respond(w, r, http.StatusOK, result)
 	}
 }
 

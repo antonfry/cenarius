@@ -5,7 +5,7 @@ type Config struct {
 	Mode     string `json:"mode"`
 	LogLevel string `json:"log_level"`
 	Secret   string `json:"secret"`
-	Encode   bool   `json:"encode"`
+	GZip     bool   `json:"gzip"`
 	Login    string `json:"login"`
 	Password string `json:"password"`
 	Action   string `json:"action"`
@@ -17,7 +17,7 @@ func NewConfig() *Config {
 		Mode:     "HTTP",
 		LogLevel: "INFO",
 		Secret:   "",
-		Encode:   true,
+		GZip:     false,
 		Login:    "AgentUser",
 		Password: "AgentPassword",
 	}

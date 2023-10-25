@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/gorilla/sessions"
 	"github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 )
@@ -19,8 +18,8 @@ import (
 type ctxKey int8
 
 const (
-	sessionName        = "cenarius"
-	ctxKeyUser  ctxKey = iota
+	AuthHeader        = "X-Cenarius-Token"
+	ctxKeyUser ctxKey = iota
 	ctxKeyRequestID
 )
 
@@ -30,7 +29,6 @@ type server struct {
 	logger        *logrus.Logger
 	HTTPServer    *http.Server
 	router        *chi.Mux
-	sessionStore  sessions.Store
 	GRPCServer    *grpc.Server
 	store         store.Store
 	allowedSubnet *net.IPNet
@@ -39,10 +37,9 @@ type server struct {
 // NewServer returns new server object
 func NewServer(config *Config) *server {
 	s := &server{
-		config:       config,
-		logger:       logrus.New(),
-		HTTPServer:   &http.Server{Addr: config.Bind},
-		sessionStore: sessions.NewCookieStore([]byte(config.SessionKey)),
+		config:     config,
+		logger:     logrus.New(),
+		HTTPServer: &http.Server{Addr: config.Bind},
 	}
 	s.configureLogger()
 	s.configureStore()
@@ -163,19 +160,19 @@ func (s *server) userRegister(ctx context.Context, u *model.User) (*model.User, 
 	return u, http.StatusAccepted, nil
 }
 
-func (s *server) userLogin(ctx context.Context, u *model.User) (*model.User, int, error) {
+func (s *server) userLogin(ctx context.Context, u *model.User) (*model.User, error) {
 	storageUser, err := s.store.User().FindByLogin(ctx, u.Login)
 	if err != nil {
 		s.logger.Errorf("Unknown login: %s", u.Login)
-		return nil, http.StatusUnauthorized, err
+		return nil, err
 	}
 	if !storageUser.ComparePassword(u.Password) {
 		s.logger.Errorf("Incorrect Password: %v", u.Password)
-		return nil, http.StatusUnauthorized, store.ErrIncorrectPassword
+		return nil, store.ErrIncorrectPassword
 	}
 	u.ID = storageUser.ID
 	u.Sanitaze()
-	return u, http.StatusOK, nil
+	return u, nil
 }
 
 func (s *server) addLoginWithPassword(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
