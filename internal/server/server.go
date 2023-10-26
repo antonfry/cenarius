@@ -180,7 +180,7 @@ func (s *server) addLoginWithPassword(ctx context.Context, m *model.LoginWithPas
 		s.logger.Errorf("Failed to add LoginWithPassword %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("LoginWithPassword created: %v", m)
+	s.logger.Debugf("LoginWithPassword created: %v", m)
 	return m, nil
 }
 
@@ -189,7 +189,7 @@ func (s *server) addCreditCard(ctx context.Context, m *model.CreditCard) (*model
 		s.logger.Errorf("Failed to add CreditCard %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("CreditCard created: %v", m)
+	s.logger.Debugf("CreditCard created: %v", m)
 	return m, nil
 }
 
@@ -198,7 +198,7 @@ func (s *server) addSecretText(ctx context.Context, m *model.SecretText) (*model
 		s.logger.Errorf("Failed to add SecretText %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("SecretText created: %v", m)
+	s.logger.Debugf("SecretText created: %v", m)
 	return m, nil
 }
 
@@ -208,7 +208,7 @@ func (s *server) addSecretFile(ctx context.Context, m *model.SecretFile) (*model
 		s.logger.Errorf("Failed to add SecretFile %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("SecretFile created: %v", m)
+	s.logger.Debugf("SecretFile created: %v", m)
 	return m, nil
 }
 
@@ -217,7 +217,7 @@ func (s *server) updateLoginWithPassword(ctx context.Context, m *model.LoginWith
 		s.logger.Errorf("Failed to add LoginWithPassword %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("LoginWithPassword created: %v", m)
+	s.logger.Debugf("LoginWithPassword updated: %v", m)
 	return m, nil
 }
 
@@ -226,7 +226,7 @@ func (s *server) updateCreditCard(ctx context.Context, m *model.CreditCard) (*mo
 		s.logger.Errorf("Failed to add CreditCard %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("CreditCard created: %v", m)
+	s.logger.Debugf("CreditCard updated: %v", m)
 	return m, nil
 }
 
@@ -235,7 +235,7 @@ func (s *server) updateSecretText(ctx context.Context, m *model.SecretText) (*mo
 		s.logger.Errorf("Failed to add SecretText %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("SecretText created: %v", m)
+	s.logger.Debugf("SecretText updated: %v", m)
 	return m, nil
 }
 
@@ -244,7 +244,7 @@ func (s *server) updateSecretFile(ctx context.Context, m *model.SecretFile) (*mo
 		s.logger.Errorf("Failed to add SecretFile %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("SecretFile created: %v", m)
+	s.logger.Debugf("SecretFile updated: %v", m)
 	return m, nil
 }
 

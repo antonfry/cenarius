@@ -15,7 +15,7 @@ import (
 
 func (s *server) setContentType(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Info("server.setContentType is working")
+		s.logger.Debug("server.setContentType is working")
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		next.ServeHTTP(w, r)
 	})
@@ -23,7 +23,7 @@ func (s *server) setContentType(next http.Handler) http.Handler {
 
 func (s *server) authenticateUser(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Info("server.authenticateUser is working")
+		s.logger.Debug("server.authenticateUser is working")
 		h := r.Header.Get(AuthHeader)
 		if h == "" {
 			s.logger.Error("Unable to get auth header")
@@ -48,14 +48,14 @@ func (s *server) authenticateUser(next http.Handler) http.Handler {
 			s.error(w, r, http.StatusUnauthorized, store.ErrNotAuthenticated)
 			return
 		}
-		s.logger.Infof("server.authenticateUser ok: %s", u.Login)
+		s.logger.Debugf("server.authenticateUser ok: %s", u.Login)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyUser, u)))
 	})
 }
 
 func (s *server) setRequestID(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Info("server.setRequestID is working")
+		s.logger.Debug("server.setRequestID is working")
 		id := uuid.New().String()
 		w.Header().Set("X-Request-ID", id)
 		next.ServeHTTP(w, r.WithContext(context.WithValue(r.Context(), ctxKeyRequestID, id)))
@@ -64,7 +64,7 @@ func (s *server) setRequestID(next http.Handler) http.Handler {
 
 func (s *server) logRequest(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.logger.Info("server.logRequest is working")
+		s.logger.Debug("server.logRequest is working")
 		start := time.Now()
 		logger := s.logger.WithFields(logrus.Fields{
 			"ip": r.RemoteAddr,
@@ -72,7 +72,7 @@ func (s *server) logRequest(next http.Handler) http.Handler {
 		})
 		responseWriter := &responseWriter{w, 0}
 		next.ServeHTTP(responseWriter, r)
-		s.logger.Info("server.logRequest is logging")
+		s.logger.Debug("server.logRequest is logging")
 		logger.Infof(
 			"Request: %s %s %v %d %v %v",
 			r.Method,

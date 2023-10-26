@@ -71,7 +71,7 @@ func (a *agent) write2Buffer(buf *bytes.Buffer, v any) {
 		a.logger.Errorf("sendRequest err: %s", err.Error())
 		return
 	}
-	a.logger.Infof("sendRequest jsonData: %s", string(jsonData))
+	a.logger.Debugf("write2Buffer jsonData: %s", string(jsonData))
 	if a.config.GZip {
 		gzipData := gzip.NewWriter(buf)
 		if _, err := gzipData.Write(jsonData); err != nil {
@@ -123,7 +123,7 @@ func (a *agent) sendRequest(ctx context.Context, path string, method string, v a
 		return
 	}
 	defer resp.Body.Close()
-	a.logger.Infof("sendRequest response code: %d", resp.StatusCode)
+	a.logger.Debugf("sendRequest response code: %d", resp.StatusCode)
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
 		a.logger.Errorf("sendRequest err: %s", err.Error())
@@ -349,21 +349,21 @@ func (a *agent) userInput() {
 	ctx := context.Background()
 	action := userinput.Input("Action")
 	a.logger.Infof("agent.userInput action: %s", action)
-	if action == "register" {
+	if action == "register" || action == "r" {
 		a.register(ctx)
 		return
 	}
 	target := userinput.Input("Type of secret")
 	switch action {
-	case "list":
+	case "list", "l":
 		a.list(ctx, target)
-	case "get":
+	case "get", "g":
 		a.get(ctx, target)
-	case "add":
+	case "add", "a":
 		a.add(ctx, target)
-	case "delete":
+	case "delete", "d":
 		a.delete(ctx, target)
-	case "update":
+	case "update", "u":
 		a.update(ctx, target)
 	default:
 		log.Fatalf("Unknown action: %s", action)
