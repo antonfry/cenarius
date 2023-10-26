@@ -58,11 +58,13 @@ func (r *SecretFileRepository) Delete(ctx context.Context, m *model.SecretFile) 
 func (r *SecretFileRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.SecretFile, error) {
 	mm := make([]*model.SecretFile, 0)
 	sql_string := "SELECT id, name, meta, path FROM SecretFile WHERE user_id=$1"
+	args := []any{id}
 	if name != "" {
 		sql_string += " AND name like $2"
+		args = append(args, name)
 	}
 	rows, err := r.store.db.QueryContext(
-		ctx, sql_string, id, name,
+		ctx, sql_string, args...,
 	)
 	if err != nil {
 		return nil, err

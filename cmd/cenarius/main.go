@@ -12,9 +12,8 @@ import (
 )
 
 type flags struct {
-	mode   string
-	conf   string
-	action string
+	mode string
+	conf string
 }
 
 type cenariusWorker interface {
@@ -27,7 +26,6 @@ var worker cenariusWorker
 
 func init() {
 	flag.StringVar(&flagsData.mode, "m", "", "server or agent")
-	flag.StringVar(&flagsData.action, "a", "list", "action for agent")
 	flag.StringVar(&flagsData.conf, "config", "", "Path to config")
 	flag.Parse()
 }
@@ -42,7 +40,6 @@ func main() {
 		worker = server.NewServer(conf)
 	case "agent":
 		conf := agent.NewConfig()
-		conf.Action = flagsData.action
 		worker = agent.NewAgent(conf)
 	default:
 		flag.Usage()

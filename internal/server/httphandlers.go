@@ -211,9 +211,12 @@ func (s *server) handleCreditCardSearch() http.HandlerFunc {
 		user := r.Context().Value(ctxKeyUser)
 		userId := user.(*model.User).ID
 		name := chi.URLParam(r, "name")
-		if _, err := s.searchCreditCard(r.Context(), name, userId); err != nil {
+		result, err := s.searchCreditCard(r.Context(), name, userId)
+		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
+			return
 		}
+		s.respond(w, r, http.StatusOK, result)
 	}
 }
 
@@ -269,9 +272,11 @@ func (s *server) handleSecretTextSearch() http.HandlerFunc {
 		user := r.Context().Value(ctxKeyUser)
 		userId := user.(*model.User).ID
 		name := chi.URLParam(r, "name")
-		if _, err := s.searchSecretText(r.Context(), name, userId); err != nil {
+		result, err := s.searchSecretText(r.Context(), name, userId)
+		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
 		}
+		s.respond(w, r, http.StatusOK, result)
 	}
 }
 
@@ -329,9 +334,11 @@ func (s *server) handleSecretFileSearch() http.HandlerFunc {
 		user := r.Context().Value(ctxKeyUser)
 		userId := user.(*model.User).ID
 		name := chi.URLParam(r, "name")
-		if _, err := s.searchSecretFile(r.Context(), name, userId); err != nil {
+		result, err := s.searchSecretFile(r.Context(), name, userId)
+		if err != nil {
 			s.logger.Errorf("func handleSecretFileSearch: %s", err.Error())
 			s.error(w, r, http.StatusInternalServerError, err)
 		}
+		s.respond(w, r, http.StatusOK, result)
 	}
 }

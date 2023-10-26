@@ -58,11 +58,13 @@ func (r *SecretTextRepository) Delete(ctx context.Context, m *model.SecretText) 
 func (r *SecretTextRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.SecretText, error) {
 	mm := make([]*model.SecretText, 0)
 	sql_string := "SELECT id, name, meta, text FROM SecretText WHERE user_id=$1"
+	args := []any{id}
 	if name != "" {
 		sql_string += " AND name like $2"
+		args = append(args, name)
 	}
 	rows, err := r.store.db.QueryContext(
-		ctx, sql_string, id, name,
+		ctx, sql_string, args...,
 	)
 	if err != nil {
 		return nil, err
