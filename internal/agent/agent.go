@@ -2,6 +2,7 @@ package agent
 
 import (
 	"bytes"
+	"cenarius/internal/agent/userinput"
 	"cenarius/internal/model"
 	"cenarius/internal/server"
 	"compress/gzip"
@@ -160,12 +161,84 @@ func (a *agent) addLogingWithPassword(ctx context.Context, m *model.LoginWithPas
 	a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
-func (a *agent) deleteLogingWithPassword(ctx context.Context, id string) {
-	uri := "api/v1/private/loginwithpassword/" + id
+func (a *agent) deleteLogingWithPassword(ctx context.Context, id int) {
+	uri := "api/v1/private/loginwithpassword/" + strconv.Itoa(id)
 	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
 }
 func (a *agent) updateLogingWithPassword(ctx context.Context, m *model.LoginWithPassword) {
 	uri := "api/v1/private/loginwithpassword"
+	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+}
+
+func (a *agent) listCreditCard(ctx context.Context) {
+	uri := "api/v1/private/creditcards"
+	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+}
+
+func (a *agent) getCreditCard(ctx context.Context) {
+	uri := "api/v1/private/creditcard"
+	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+}
+
+func (a *agent) addCreditCard(ctx context.Context, m *model.CreditCard) {
+	uri := "api/v1/private/creditcard"
+	a.sendRequest(ctx, uri, http.MethodPut, m, true)
+}
+
+func (a *agent) deleteCreditCard(ctx context.Context, id int) {
+	uri := "api/v1/private/creditcard/" + strconv.Itoa(id)
+	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
+}
+func (a *agent) updateCreditCard(ctx context.Context, m *model.CreditCard) {
+	uri := "api/v1/private/creditcard"
+	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+}
+
+func (a *agent) listSecretText(ctx context.Context) {
+	uri := "api/v1/private/secrettexts"
+	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+}
+
+func (a *agent) getSecretText(ctx context.Context) {
+	uri := "api/v1/private/secrettext"
+	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+}
+
+func (a *agent) addSecretText(ctx context.Context, m *model.SecretText) {
+	uri := "api/v1/private/secrettext"
+	a.sendRequest(ctx, uri, http.MethodPut, m, true)
+}
+
+func (a *agent) deleteSecretText(ctx context.Context, id int) {
+	uri := "api/v1/private/secrettext/" + strconv.Itoa(id)
+	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
+}
+func (a *agent) updateSecretText(ctx context.Context, m *model.SecretText) {
+	uri := "api/v1/private/secrettext"
+	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+}
+
+func (a *agent) listSecretFile(ctx context.Context) {
+	uri := "api/v1/private/secretfiles"
+	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+}
+
+func (a *agent) getSecretFile(ctx context.Context) {
+	uri := "api/v1/private/secretfile"
+	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+}
+
+func (a *agent) addSecretFile(ctx context.Context, m *model.SecretFile) {
+	uri := "api/v1/private/secretfile"
+	a.sendRequest(ctx, uri, http.MethodPut, m, true)
+}
+
+func (a *agent) deleteSecretFile(ctx context.Context, id int) {
+	uri := "api/v1/private/secretfile/" + strconv.Itoa(id)
+	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
+}
+func (a *agent) updateSecretFile(ctx context.Context, m *model.SecretFile) {
+	uri := "api/v1/private/secretfile"
 	a.sendRequest(ctx, uri, http.MethodPost, m, true)
 }
 
@@ -176,9 +249,9 @@ func (a *agent) list(ctx context.Context, target string) {
 	case "c", "credit", "card", "cc", "creditcard":
 		a.listLogingWithPassword(ctx)
 	case "t", "text", "secrettext":
-		a.listLogingWithPassword(ctx)
+		a.listSecretText(ctx)
 	case "f", "file", "secretfile":
-		a.listLogingWithPassword(ctx)
+		a.listSecretFile(ctx)
 	default:
 		log.Fatalf("Unknown target: %s", target)
 	}
@@ -189,11 +262,11 @@ func (a *agent) get(ctx context.Context, target string) {
 	case "l", "login", "password", "lp":
 		a.getLogingWithPassword(ctx)
 	case "c", "credit", "card", "cc", "creditcard":
-		a.listLogingWithPassword(ctx)
+		a.getCreditCard(ctx)
 	case "t", "text", "secrettext":
-		a.listLogingWithPassword(ctx)
+		a.getSecretText(ctx)
 	case "f", "file", "secretfile":
-		a.listLogingWithPassword(ctx)
+		a.getSecretFile(ctx)
 	default:
 		log.Fatalf("Unknown target: %s", target)
 	}
@@ -202,16 +275,17 @@ func (a *agent) get(ctx context.Context, target string) {
 func (a *agent) add(ctx context.Context, target string) {
 	switch target {
 	case "l", "login", "password", "lp":
-		login := input("Login")
-		password := input("Password")
-		m := &model.LoginWithPassword{Login: login, Password: password}
+		m := userinput.InputLoginWithPassword()
 		a.addLogingWithPassword(ctx, m)
 	case "c", "credit", "card", "cc", "creditcard":
-		a.listLogingWithPassword(ctx)
+		m := userinput.InputCreditCard()
+		a.addCreditCard(ctx, m)
 	case "t", "text", "secrettext":
-		a.listLogingWithPassword(ctx)
+		m := userinput.InputSecretText()
+		a.addSecretText(ctx, m)
 	case "f", "file", "secretfile":
-		a.listLogingWithPassword(ctx)
+		m := userinput.InputSecretFile()
+		a.addSecretFile(ctx, m)
 	default:
 		log.Fatalf("Unknown target: %s", target)
 	}
@@ -221,14 +295,20 @@ func (a *agent) delete(ctx context.Context, target string) {
 	switch target {
 	case "l", "login", "password", "lp":
 		a.listLogingWithPassword(ctx)
-		id := input("Id of secret to delete")
+		id := userinput.InputId()
 		a.deleteLogingWithPassword(ctx, id)
 	case "c", "credit", "card", "cc", "creditcard":
-		a.listLogingWithPassword(ctx)
+		a.listCreditCard(ctx)
+		id := userinput.InputId()
+		a.deleteCreditCard(ctx, id)
 	case "t", "text", "secrettext":
-		a.listLogingWithPassword(ctx)
+		a.listSecretText(ctx)
+		id := userinput.InputId()
+		a.deleteSecretText(ctx, id)
 	case "f", "file", "secretfile":
-		a.listLogingWithPassword(ctx)
+		a.listSecretFile(ctx)
+		id := userinput.InputId()
+		a.deleteSecretFile(ctx, id)
 	default:
 		log.Fatalf("Unknown target: %s", target)
 	}
@@ -238,23 +318,28 @@ func (a *agent) update(ctx context.Context, target string) {
 	switch target {
 	case "l", "login", "password", "lp":
 		a.listLogingWithPassword(ctx)
-		id := input("Id of secret to update")
-		login := input("Login")
-		password := input("Password")
-		meta := input("Meta")
-		name := input("Name")
-		m := &model.LoginWithPassword{Login: login, Password: password}
-		m.ID, _ = strconv.Atoi(id)
-		m.Name = name
-		m.Password = password
-		m.Meta = meta
+		id := userinput.InputId()
+		m := userinput.InputLoginWithPassword()
+		m.ID = id
 		a.updateLogingWithPassword(ctx, m)
 	case "c", "credit", "card", "cc", "creditcard":
-		a.listLogingWithPassword(ctx)
+		a.listCreditCard(ctx)
+		id := userinput.InputId()
+		m := userinput.InputCreditCard()
+		m.ID = id
+		a.updateCreditCard(ctx, m)
 	case "t", "text", "secrettext":
-		a.listLogingWithPassword(ctx)
+		a.listSecretText(ctx)
+		id := userinput.InputId()
+		m := userinput.InputSecretText()
+		m.ID = id
+		a.updateSecretText(ctx, m)
 	case "f", "file", "secretfile":
-		a.listLogingWithPassword(ctx)
+		a.listSecretFile(ctx)
+		id := userinput.InputId()
+		m := userinput.InputSecretFile()
+		m.ID = id
+		a.updateSecretFile(ctx, m)
 	default:
 		log.Fatalf("Unknown target: %s", target)
 	}
@@ -262,13 +347,13 @@ func (a *agent) update(ctx context.Context, target string) {
 
 func (a *agent) userInput() {
 	ctx := context.Background()
-	action := input("Action")
+	action := userinput.Input("Action")
 	a.logger.Infof("agent.userInput action: %s", action)
 	if action == "register" {
 		a.register(ctx)
 		return
 	}
-	target := input("Type of secret")
+	target := userinput.Input("Type of secret")
 	switch action {
 	case "list":
 		a.list(ctx, target)
