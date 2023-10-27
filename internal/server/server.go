@@ -171,11 +171,18 @@ func (s *server) userLogin(ctx context.Context, u *model.User) (*model.User, err
 		return nil, store.ErrIncorrectPassword
 	}
 	u.ID = storageUser.ID
+	u.EncryptedPassword = storageUser.EncryptedPassword
 	u.Sanitaze()
 	return u, nil
 }
 
-func (s *server) addLoginWithPassword(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
+func (s *server) addLoginWithPassword(ctx context.Context, m *model.LoginWithPassword, key, iv string) (*model.LoginWithPassword, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	if err := m.Encrypt(key, iv); err != nil {
+		return nil, err
+	}
 	if err := s.store.LoginWithPassword().Add(ctx, m); err != nil {
 		s.logger.Errorf("Failed to add LoginWithPassword %v: %v", m, err)
 		return nil, err
@@ -184,7 +191,13 @@ func (s *server) addLoginWithPassword(ctx context.Context, m *model.LoginWithPas
 	return m, nil
 }
 
-func (s *server) addCreditCard(ctx context.Context, m *model.CreditCard) (*model.CreditCard, error) {
+func (s *server) addCreditCard(ctx context.Context, m *model.CreditCard, key, iv string) (*model.CreditCard, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	if err := m.Encrypt(key, iv); err != nil {
+		return nil, err
+	}
 	if err := s.store.CreditCard().Add(ctx, m); err != nil {
 		s.logger.Errorf("Failed to add CreditCard %v: %v", m, err)
 		return nil, err
@@ -193,7 +206,13 @@ func (s *server) addCreditCard(ctx context.Context, m *model.CreditCard) (*model
 	return m, nil
 }
 
-func (s *server) addSecretText(ctx context.Context, m *model.SecretText) (*model.SecretText, error) {
+func (s *server) addSecretText(ctx context.Context, m *model.SecretText, key, iv string) (*model.SecretText, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	if err := m.Encrypt(key, iv); err != nil {
+		return nil, err
+	}
 	if err := s.store.SecretText().Add(ctx, m); err != nil {
 		s.logger.Errorf("Failed to add SecretText %v: %v", m, err)
 		return nil, err
@@ -202,8 +221,13 @@ func (s *server) addSecretText(ctx context.Context, m *model.SecretText) (*model
 	return m, nil
 }
 
-func (s *server) addSecretFile(ctx context.Context, m *model.SecretFile) (*model.SecretFile, error) {
-
+func (s *server) addSecretFile(ctx context.Context, m *model.SecretFile, key, iv string) (*model.SecretFile, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	if err := m.Encrypt(key, iv); err != nil {
+		return nil, err
+	}
 	if err := s.store.SecretFile().Add(ctx, m); err != nil {
 		s.logger.Errorf("Failed to add SecretFile %v: %v", m, err)
 		return nil, err
@@ -212,7 +236,13 @@ func (s *server) addSecretFile(ctx context.Context, m *model.SecretFile) (*model
 	return m, nil
 }
 
-func (s *server) updateLoginWithPassword(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
+func (s *server) updateLoginWithPassword(ctx context.Context, m *model.LoginWithPassword, key, iv string) (*model.LoginWithPassword, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	if err := m.Encrypt(key, iv); err != nil {
+		return nil, err
+	}
 	if err := s.store.LoginWithPassword().Update(ctx, m); err != nil {
 		s.logger.Errorf("Failed to add LoginWithPassword %v: %v", m, err)
 		return nil, err
@@ -221,7 +251,13 @@ func (s *server) updateLoginWithPassword(ctx context.Context, m *model.LoginWith
 	return m, nil
 }
 
-func (s *server) updateCreditCard(ctx context.Context, m *model.CreditCard) (*model.CreditCard, error) {
+func (s *server) updateCreditCard(ctx context.Context, m *model.CreditCard, key, iv string) (*model.CreditCard, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	if err := m.Encrypt(key, iv); err != nil {
+		return nil, err
+	}
 	if err := s.store.CreditCard().Update(ctx, m); err != nil {
 		s.logger.Errorf("Failed to add CreditCard %v: %v", m, err)
 		return nil, err
@@ -230,7 +266,13 @@ func (s *server) updateCreditCard(ctx context.Context, m *model.CreditCard) (*mo
 	return m, nil
 }
 
-func (s *server) updateSecretText(ctx context.Context, m *model.SecretText) (*model.SecretText, error) {
+func (s *server) updateSecretText(ctx context.Context, m *model.SecretText, key, iv string) (*model.SecretText, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	if err := m.Encrypt(key, iv); err != nil {
+		return nil, err
+	}
 	if err := s.store.SecretText().Update(ctx, m); err != nil {
 		s.logger.Errorf("Failed to add SecretText %v: %v", m, err)
 		return nil, err
@@ -239,7 +281,13 @@ func (s *server) updateSecretText(ctx context.Context, m *model.SecretText) (*mo
 	return m, nil
 }
 
-func (s *server) updateSecretFile(ctx context.Context, m *model.SecretFile) (*model.SecretFile, error) {
+func (s *server) updateSecretFile(ctx context.Context, m *model.SecretFile, key, iv string) (*model.SecretFile, error) {
+	if err := m.Validate(); err != nil {
+		return nil, err
+	}
+	if err := m.Encrypt(key, iv); err != nil {
+		return nil, err
+	}
 	if err := s.store.SecretFile().Update(ctx, m); err != nil {
 		s.logger.Errorf("Failed to add SecretFile %v: %v", m, err)
 		return nil, err
@@ -276,66 +324,98 @@ func (s *server) deleteSecretFile(ctx context.Context, m *model.SecretFile) erro
 	return nil
 }
 
-func (s *server) getLoginWithPassword(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
+func (s *server) getLoginWithPassword(ctx context.Context, m *model.LoginWithPassword, key, iv string) (*model.LoginWithPassword, error) {
 	m, err := s.store.LoginWithPassword().GetByID(ctx, m)
 	if err != nil {
 		return nil, err
 	}
+	if err := m.Decrypt(key, iv); err != nil {
+		return nil, err
+	}
 	return m, nil
 }
 
-func (s *server) getCreditCard(ctx context.Context, m *model.CreditCard) (*model.CreditCard, error) {
+func (s *server) getCreditCard(ctx context.Context, m *model.CreditCard, key, iv string) (*model.CreditCard, error) {
 	m, err := s.store.CreditCard().GetByID(ctx, m)
 	if err != nil {
 		return nil, err
 	}
+	if err := m.Decrypt(key, iv); err != nil {
+		return nil, err
+	}
 	return m, nil
 }
 
-func (s *server) getSecretText(ctx context.Context, m *model.SecretText) (*model.SecretText, error) {
+func (s *server) getSecretText(ctx context.Context, m *model.SecretText, key, iv string) (*model.SecretText, error) {
 	m, err := s.store.SecretText().GetByID(ctx, m)
 	if err != nil {
 		return nil, err
 	}
+	if err := m.Decrypt(key, iv); err != nil {
+		return nil, err
+	}
 	return m, nil
 }
 
-func (s *server) getSecretFile(ctx context.Context, m *model.SecretFile) (*model.SecretFile, error) {
+func (s *server) getSecretFile(ctx context.Context, m *model.SecretFile, key, iv string) (*model.SecretFile, error) {
 	m, err := s.store.SecretFile().GetByID(ctx, m)
 	if err != nil {
 		return nil, err
 	}
+	if err := m.Decrypt(key, iv); err != nil {
+		return nil, err
+	}
 	return m, nil
 }
 
-func (s *server) searchLoginWithPassword(ctx context.Context, name string, id int) ([]*model.LoginWithPassword, error) {
+func (s *server) searchLoginWithPassword(ctx context.Context, name string, id int, key, iv string) ([]*model.LoginWithPassword, error) {
 	m, err := s.store.LoginWithPassword().SearchByName(ctx, name, id)
 	if err != nil {
 		return nil, err
 	}
+	for _, i := range m {
+		if err := i.Decrypt(key, iv); err != nil {
+			return nil, err
+		}
+	}
 	return m, nil
 }
 
-func (s *server) searchCreditCard(ctx context.Context, name string, id int) ([]*model.CreditCard, error) {
+func (s *server) searchCreditCard(ctx context.Context, name string, id int, key, iv string) ([]*model.CreditCard, error) {
 	m, err := s.store.CreditCard().SearchByName(ctx, name, id)
 	if err != nil {
 		return nil, err
 	}
-	return m, nil
-}
-
-func (s *server) searchSecretText(ctx context.Context, name string, id int) ([]*model.SecretText, error) {
-	m, err := s.store.SecretText().SearchByName(ctx, name, id)
-	if err != nil {
-		return nil, err
+	for _, i := range m {
+		if err := i.Decrypt(key, iv); err != nil {
+			return nil, err
+		}
 	}
 	return m, nil
 }
 
-func (s *server) searchSecretFile(ctx context.Context, name string, id int) ([]*model.SecretFile, error) {
+func (s *server) searchSecretText(ctx context.Context, name string, id int, key, iv string) ([]*model.SecretText, error) {
+	m, err := s.store.SecretText().SearchByName(ctx, name, id)
+	if err != nil {
+		return nil, err
+	}
+	for _, i := range m {
+		if err := i.Decrypt(key, iv); err != nil {
+			return nil, err
+		}
+	}
+	return m, nil
+}
+
+func (s *server) searchSecretFile(ctx context.Context, name string, id int, key, iv string) ([]*model.SecretFile, error) {
 	m, err := s.store.SecretFile().SearchByName(ctx, name, id)
 	if err != nil {
 		return nil, err
+	}
+	for _, i := range m {
+		if err := i.Decrypt(key, iv); err != nil {
+			return nil, err
+		}
 	}
 	return m, nil
 }

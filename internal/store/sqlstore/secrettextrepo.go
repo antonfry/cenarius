@@ -16,9 +16,6 @@ func (r *SecretTextRepository) Ping() error {
 }
 
 func (r *SecretTextRepository) Add(ctx context.Context, m *model.SecretText) error {
-	if err := m.Validate(); err != nil {
-		return err
-	}
 	if err := r.store.db.QueryRowContext(
 		ctx, "INSERT INTO SecretText (user_id, name, meta, text) VALUES($1, $2, $3, $4) RETURNING id",
 		m.UserId,
@@ -32,9 +29,6 @@ func (r *SecretTextRepository) Add(ctx context.Context, m *model.SecretText) err
 }
 
 func (r *SecretTextRepository) Update(ctx context.Context, m *model.SecretText) error {
-	if err := m.Validate(); err != nil {
-		return err
-	}
 	if _, err := r.store.db.ExecContext(
 		ctx, "UPDATE SecretText SET user_id=$1, name=$2, meta=$3, text=$4 WHERE id=$5",
 		m.UserId,

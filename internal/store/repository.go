@@ -42,11 +42,3 @@ type SecretFileRepository interface {
 	Update(context.Context, *model.SecretFile) error
 	Delete(context.Context, *model.SecretFile) error
 }
-
-type SecretDataRepository interface {
-	SearchByName(context.Context, string, int) (*model.SecretData, error)
-	GetByID(context.Context, *model.SecretData) (*model.SecretData, error)
-	Add(context.Context, *model.SecretData) error
-	Update(context.Context, *model.SecretData) error
-	Delete(context.Context, *model.SecretData) error
-}

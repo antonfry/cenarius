@@ -16,9 +16,6 @@ func (r *CreditCardRepository) Ping() error {
 }
 
 func (r *CreditCardRepository) Add(ctx context.Context, m *model.CreditCard) error {
-	if err := m.Validate(); err != nil {
-		return err
-	}
 	if err := r.store.db.QueryRowContext(
 		ctx, "INSERT INTO CreditCard (user_id, name, meta, owner_name, owner_last_name, number, cvc) VALUES($1, $2, $3, $4, $5, $6, $7) RETURNING id",
 		m.UserId,
@@ -35,9 +32,6 @@ func (r *CreditCardRepository) Add(ctx context.Context, m *model.CreditCard) err
 }
 
 func (r *CreditCardRepository) Update(ctx context.Context, m *model.CreditCard) error {
-	if err := m.Validate(); err != nil {
-		return err
-	}
 	if _, err := r.store.db.ExecContext(
 		ctx, "UPDATE CreditCard SET user_id=$1, name=$2, meta=$3, owner_name=$4, owner_last_name=$5, number=$6, cvc=$7  WHERE id=$8",
 		m.UserId,

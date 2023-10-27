@@ -16,9 +16,6 @@ func (r *SecretFileRepository) Ping() error {
 }
 
 func (r *SecretFileRepository) Add(ctx context.Context, m *model.SecretFile) error {
-	if err := m.Validate(); err != nil {
-		return err
-	}
 	if err := r.store.db.QueryRowContext(
 		ctx, "INSERT INTO SecretFile (user_id, name, meta, path) VALUES($1, $2, $3, $4) RETURNING id",
 		m.UserId,
@@ -32,9 +29,6 @@ func (r *SecretFileRepository) Add(ctx context.Context, m *model.SecretFile) err
 }
 
 func (r *SecretFileRepository) Update(ctx context.Context, m *model.SecretFile) error {
-	if err := m.Validate(); err != nil {
-		return err
-	}
 	if _, err := r.store.db.ExecContext(
 		ctx, "UPDATE SecretFile SET user_id=$1, name=$2, meta=$3, path=$4 WHERE id=$5",
 		m.UserId,

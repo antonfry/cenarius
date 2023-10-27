@@ -2,8 +2,10 @@ package model
 
 import (
 	"bufio"
+	"cenarius/internal/encrypt"
 	"io/fs"
 	"os"
+	"strconv"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
@@ -31,12 +33,42 @@ func (s *LoginWithPassword) Validate() error {
 	)
 }
 
+func (s *LoginWithPassword) Encrypt(key, iv string) error {
+	encLogin, err := encrypt.AESEncrypted(s.Login, key, iv)
+	if err != nil {
+		return err
+	}
+	encPassword, err := encrypt.AESEncrypted(s.Password, key, iv)
+	if err != nil {
+		return err
+	}
+	s.Login = encLogin
+	s.Password = encPassword
+	return nil
+}
+
+func (s *LoginWithPassword) Decrypt(key, iv string) error {
+	decLogin, err := encrypt.AESDecrypted(s.Login, key, iv)
+	if err != nil {
+		return err
+	}
+	decPassword, err := encrypt.AESDecrypted(s.Password, key, iv)
+	if err != nil {
+		return err
+	}
+	s.Login = decLogin
+	s.Password = decPassword
+	return nil
+}
+
 type CreditCard struct {
 	SecretData
 	OwnerName     string `json:"owner_name"`
 	OwnerLastName string `json:"owner_last_name"`
+	EncNumber     string `json:"encnumber"`
 	Number        int    `json:"number"`
 	CVC           int    `json:"cvc"`
+	EncCVC        string `json:"enccvc"`
 }
 
 func (s *CreditCard) Validate() error {
@@ -49,6 +81,62 @@ func (s *CreditCard) Validate() error {
 	)
 }
 
+func (s *CreditCard) Encrypt(key, iv string) error {
+	encOwnerName, err := encrypt.AESEncrypted(s.OwnerName, key, iv)
+	if err != nil {
+		return err
+	}
+	encOwnerLastName, err := encrypt.AESEncrypted(s.OwnerLastName, key, iv)
+	if err != nil {
+		return err
+	}
+	encNumber, err := encrypt.AESEncrypted(strconv.Itoa(s.Number), key, iv)
+	if err != nil {
+		return err
+	}
+	encCVC, err := encrypt.AESEncrypted(strconv.Itoa(s.CVC), key, iv)
+	if err != nil {
+		return err
+	}
+	s.OwnerName = encOwnerName
+	s.OwnerLastName = encOwnerLastName
+	s.EncNumber = encNumber
+	s.Number = 0
+	s.EncCVC = encCVC
+	s.CVC = 0
+	return nil
+}
+
+func (s *CreditCard) Decrypt(key, iv string) error {
+	decOwnerName, err := encrypt.AESDecrypted(s.OwnerName, key, iv)
+	if err != nil {
+		return err
+	}
+	decOwnerLastName, err := encrypt.AESDecrypted(s.OwnerLastName, key, iv)
+	if err != nil {
+		return err
+	}
+	decNumber, err := encrypt.AESDecrypted(s.EncNumber, key, iv)
+	if err != nil {
+		return err
+	}
+	decCVC, err := encrypt.AESDecrypted(s.EncCVC, key, iv)
+	if err != nil {
+		return err
+	}
+	s.OwnerName = decOwnerName
+	s.OwnerLastName = decOwnerLastName
+	s.Number, err = strconv.Atoi(decNumber)
+	if err != nil {
+		return err
+	}
+	s.CVC, err = strconv.Atoi(decCVC)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 type SecretText struct {
 	SecretData
 	Text string `json:"text"`
@@ -59,6 +147,24 @@ func (s *SecretText) Validate() error {
 		s,
 		validation.Field(&s.Text, validation.Required, is.ASCII),
 	)
+}
+
+func (s *SecretText) Encrypt(key, iv string) error {
+	encText, err := encrypt.AESEncrypted(s.Text, key, iv)
+	if err != nil {
+		return err
+	}
+	s.Text = encText
+	return nil
+}
+
+func (s *SecretText) Decrypt(key, iv string) error {
+	decText, err := encrypt.AESDecrypted(s.Text, key, iv)
+	if err != nil {
+		return err
+	}
+	s.Text = decText
+	return nil
 }
 
 type SecretFile struct {
@@ -81,6 +187,14 @@ func (s *SecretFile) Remove() error {
 		log.Errorf("Unable to remove file %v: %v", s, err)
 		return err
 	}
+	return nil
+}
+
+func (s *SecretFile) Encrypt(key, iv string) error {
+	return nil
+}
+
+func (s *SecretFile) Decrypt(key, iv string) error {
 	return nil
 }
 

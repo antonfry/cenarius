@@ -18,9 +18,6 @@ func (r *LoginWithPasswordRepository) Ping() error {
 }
 
 func (r *LoginWithPasswordRepository) Add(ctx context.Context, m *model.LoginWithPassword) error {
-	if err := m.Validate(); err != nil {
-		return err
-	}
 	if err := r.store.db.QueryRowContext(
 		ctx, "INSERT INTO LoginWithPassword (user_id, name, meta, login, password) VALUES($1, $2, $3, $4, $5) RETURNING id",
 		m.UserId,
@@ -35,9 +32,6 @@ func (r *LoginWithPasswordRepository) Add(ctx context.Context, m *model.LoginWit
 }
 
 func (r *LoginWithPasswordRepository) Update(ctx context.Context, m *model.LoginWithPassword) error {
-	if err := m.Validate(); err != nil {
-		return err
-	}
 	if _, err := r.store.db.ExecContext(
 		ctx, "UPDATE LoginWithPassword SET name=$1, meta=$2, login=$3, password=$4 WHERE user_id=$5 AND id=$6",
 		m.Name,
