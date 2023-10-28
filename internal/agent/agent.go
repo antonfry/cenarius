@@ -12,8 +12,11 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"net/http/cookiejar"
+	"os"
+	"path/filepath"
 	"strconv"
 
 	"github.com/sirupsen/logrus"
@@ -96,16 +99,19 @@ func (a *agent) getRequest(ctx context.Context, method string, endpoint string, 
 		return nil, err
 	}
 	req.Header.Set(server.AuthHeader, a.encodeAuth())
-	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	if a.config.GZip {
 		req.Header.Set("Content-Encoding", "gzip")
 	}
 	return req, nil
 }
 
+func (a *agent) geHTTPtUrl(path string) string {
+	return fmt.Sprintf("http://%v/%s", a.config.Host, path)
+}
+
 // sendRequest send http request
 func (a *agent) sendRequest(ctx context.Context, path string, method string, v any, rbody bool) int {
-	endpoint := fmt.Sprintf("http://%v/%s", a.config.Host, path)
+	endpoint := a.geHTTPtUrl(path)
 	var buf bytes.Buffer
 	a.logger.Debug("sendRequest endpoint: ", endpoint)
 	if v != nil {
@@ -116,6 +122,7 @@ func (a *agent) sendRequest(ctx context.Context, path string, method string, v a
 		a.logger.Errorf("agent.sendRequest req err: %s", err.Error())
 		return 0
 	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	resp, err := a.client.Do(req)
 	if err != nil {
 		a.logger.Errorf("agent.sendRequest resp err: %s", err.Error())
@@ -160,7 +167,7 @@ func (a *agent) getLogingWithPassword(ctx context.Context) {
 
 func (a *agent) addLogingWithPassword(ctx context.Context, m *model.LoginWithPassword) {
 	uri := "api/v1/private/loginwithpassword"
-	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
 }
 
 func (a *agent) deleteLogingWithPassword(ctx context.Context, id int) {
@@ -169,7 +176,7 @@ func (a *agent) deleteLogingWithPassword(ctx context.Context, id int) {
 }
 func (a *agent) updateLogingWithPassword(ctx context.Context, m *model.LoginWithPassword) {
 	uri := "api/v1/private/loginwithpassword"
-	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) listCreditCard(ctx context.Context) {
@@ -184,7 +191,7 @@ func (a *agent) getCreditCard(ctx context.Context) {
 
 func (a *agent) addCreditCard(ctx context.Context, m *model.CreditCard) {
 	uri := "api/v1/private/creditcard"
-	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
 }
 
 func (a *agent) deleteCreditCard(ctx context.Context, id int) {
@@ -193,7 +200,7 @@ func (a *agent) deleteCreditCard(ctx context.Context, id int) {
 }
 func (a *agent) updateCreditCard(ctx context.Context, m *model.CreditCard) {
 	uri := "api/v1/private/creditcard"
-	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) listSecretText(ctx context.Context) {
@@ -208,7 +215,7 @@ func (a *agent) getSecretText(ctx context.Context) {
 
 func (a *agent) addSecretText(ctx context.Context, m *model.SecretText) {
 	uri := "api/v1/private/secrettext"
-	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
 }
 
 func (a *agent) deleteSecretText(ctx context.Context, id int) {
@@ -217,7 +224,7 @@ func (a *agent) deleteSecretText(ctx context.Context, id int) {
 }
 func (a *agent) updateSecretText(ctx context.Context, m *model.SecretText) {
 	uri := "api/v1/private/secrettext"
-	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) listSecretFile(ctx context.Context) {
@@ -225,14 +232,38 @@ func (a *agent) listSecretFile(ctx context.Context) {
 	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
-func (a *agent) getSecretFile(ctx context.Context) {
-	uri := "api/v1/private/secretfiles"
+func (a *agent) getSecretFile(ctx context.Context, id string) {
+	uri := "api/v1/private/secretfile/" + id
 	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
 func (a *agent) addSecretFile(ctx context.Context, m *model.SecretFile) {
-	uri := "api/v1/private/secretfile"
-	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	uri := "api/v1/private/secretfile/upload"
+	file, err := os.Open(m.Path)
+	if err != nil {
+		a.logger.Fatalf("The file doesn't exist: %s", m.Path)
+	}
+	defer file.Close()
+
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+	part, err := writer.CreateFormFile("secretFile", filepath.Base(file.Name()))
+	if err != nil {
+		a.logger.Fatalf("agent.addSecretFile CreateFormFile %s: %s", file.Name(), err.Error())
+	}
+	io.Copy(part, file)
+	writer.Close()
+	endpoint := a.geHTTPtUrl(uri)
+	req, err := a.getRequest(ctx, http.MethodPost, endpoint, body)
+	if err != nil {
+		a.logger.Fatalf("agent.addSecretFile req err: %s", err.Error())
+	}
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+	resp, err := a.client.Do(req)
+	if err != nil {
+		a.logger.Fatalf("agent.addSecretFile resp err: %s", err.Error())
+	}
+	defer resp.Body.Close()
 }
 
 func (a *agent) deleteSecretFile(ctx context.Context, id int) {
@@ -241,7 +272,7 @@ func (a *agent) deleteSecretFile(ctx context.Context, id int) {
 }
 func (a *agent) updateSecretFile(ctx context.Context, m *model.SecretFile) {
 	uri := "api/v1/private/secretfile"
-	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) list(ctx context.Context, target string) {
@@ -268,7 +299,9 @@ func (a *agent) get(ctx context.Context, target string) {
 	case "t", "text", "secrettext":
 		a.getSecretText(ctx)
 	case "f", "file", "secretfile":
-		a.getSecretFile(ctx)
+		a.listSecretFile(ctx)
+		id := userinput.InputId()
+		a.getSecretFile(ctx, strconv.Itoa(id))
 	default:
 		log.Fatalf("Unknown target: %s", target)
 	}

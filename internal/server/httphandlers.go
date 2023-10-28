@@ -4,7 +4,10 @@ import (
 	"cenarius/internal/model"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"os"
+	"path"
 	"strconv"
 
 	"github.com/go-chi/chi"
@@ -65,6 +68,7 @@ func (s *server) privateRouter() *chi.Mux {
 	r.Delete("/secrettext/{id}", s.handleSecretTextWithID())
 
 	r.Get("/secretfiles", s.handleSecretFileSearch())
+	r.Post("/secretfile/upload", s.handleFileUpload())
 	r.Get("/secretfile/{id}", s.handleSecretFileWithID())
 	r.Get("/secretfile/search/{name}", s.handleSecretFileSearch())
 	r.Put("/secretfile", s.handleSecretFileWithBody())
@@ -113,11 +117,11 @@ func (s *server) handleLoginWithPasswordWithBody() http.HandlerFunc {
 		fmt.Println(user)
 		m.UserId = user.ID
 		switch r.Method {
-		case "PUT":
+		case "POST":
 			if _, err := s.addLoginWithPassword(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 			}
-		case "POST":
+		case "PUT":
 			if _, err := s.updateLoginWithPassword(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 			}
@@ -191,12 +195,12 @@ func (s *server) handleCreditCardWithBody() http.HandlerFunc {
 		}
 		m.UserId = user.ID
 		switch r.Method {
-		case "PUT":
+		case "POST":
 			if _, err := s.addCreditCard(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
-		case "POST":
+		case "PUT":
 			if _, err := s.updateCreditCard(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
@@ -267,12 +271,12 @@ func (s *server) handleSecretTextWithBody() http.HandlerFunc {
 		}
 		m.UserId = user.ID
 		switch r.Method {
-		case "PUT":
+		case "POST":
 			if _, err := s.addSecretText(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
-		case "POST":
+		case "PUT":
 			if _, err := s.updateSecretText(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
@@ -330,6 +334,48 @@ func (s *server) handleSecretTextSearch() http.HandlerFunc {
 	}
 }
 
+// handleFileUpload handle file uploading
+func (s *server) handleFileUpload() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		err := r.ParseMultipartForm(32 << 20)
+		if err != nil {
+			s.error(w, r, http.StatusBadRequest, err)
+		}
+		file, handler, err := r.FormFile("secretFile")
+		if err != nil {
+			s.logger.Error(err)
+			s.error(w, r, http.StatusInternalServerError, fmt.Errorf("server.handleFileUpload can't read file"))
+			return
+		}
+		defer file.Close()
+		user, ok := r.Context().Value(ctxKeyUser).(*model.User)
+		if !ok {
+			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
+			return
+		}
+		userSecretFilePath := path.Join(s.config.SecretFilePath, strconv.Itoa(user.ID))
+		err = os.MkdirAll(userSecretFilePath, 0755)
+		if err != nil {
+			s.logger.Errorf("Unable to create dir %s", userSecretFilePath)
+		}
+		// Create file locally
+		dst, err := os.Create(path.Join(userSecretFilePath, handler.Filename))
+		if err != nil {
+			s.logger.Error(err)
+			s.error(w, r, http.StatusInternalServerError, fmt.Errorf("server.handleFileUpload can't create temp file in %s", userSecretFilePath))
+			return
+		}
+		defer dst.Close()
+
+		// Copy the uploaded file data to the newly created file on the filesystem
+		if _, err := io.Copy(dst, file); err != nil {
+			s.logger.Error(err)
+			s.error(w, r, http.StatusInternalServerError, fmt.Errorf("server.handleFileUpload can't copy to temp file"))
+			return
+		}
+	}
+}
+
 func (s *server) handleSecretFileWithBody() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		m := &model.SecretFile{}
@@ -345,16 +391,18 @@ func (s *server) handleSecretFileWithBody() http.HandlerFunc {
 		}
 		m.UserId = user.ID
 		switch r.Method {
-		case "PUT":
+		case "POST":
 			if _, err := s.addSecretFile(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
-		case "POST":
+		case "PUT":
 			if _, err := s.updateSecretFile(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
+		default:
+			s.error(w, r, http.StatusBadRequest, fmt.Errorf("unknown type of request in handleSecretFileWithBody: %s", r.Method))
 		}
 		s.respond(w, r, http.StatusOK, m)
 	}
@@ -381,8 +429,7 @@ func (s *server) handleSecretFileWithID() http.HandlerFunc {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
-			uploadWS(w, r, m)
-			return
+			http.ServeFile(w, r, m.Path)
 		case "DELETE":
 			if err := s.deleteSecretFile(r.Context(), m); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)

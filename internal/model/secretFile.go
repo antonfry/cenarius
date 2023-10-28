@@ -17,7 +17,7 @@ type SecretFile struct {
 func (s *SecretFile) Validate() error {
 	return validation.ValidateStruct(
 		s,
-		validation.Field(&s.Path, validation.Required, validation.Length(1, 30)),
+		validation.Field(&s.Path, validation.Required, validation.Length(10, 200)),
 	)
 }
 

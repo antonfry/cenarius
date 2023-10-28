@@ -5,7 +5,6 @@ import (
 	"cenarius/internal/store"
 	"cenarius/internal/store/sqlstore"
 	"context"
-	"log"
 	"net"
 	"net/http"
 	"time"
@@ -43,7 +42,6 @@ func NewServer(config *Config) *server {
 	}
 	s.configureLogger()
 	s.configureStore()
-	s.configureTrustedSubnets()
 
 	return s
 }
@@ -134,17 +132,6 @@ func (s *server) configureStore() {
 		s.logger.Fatal(err)
 	}
 	s.store = sqlstore.NewStore(conn)
-}
-
-// configureTrustedSubnets configures trusted subnets
-func (s *server) configureTrustedSubnets() {
-	if s.config.TrustedSubnet != "" {
-		_, subnet, err := net.ParseCIDR(s.config.TrustedSubnet)
-		if err != nil {
-			log.Fatalf("Can't parse subnet from %s %v", s.config.TrustedSubnet, err)
-		}
-		s.allowedSubnet = subnet
-	}
 }
 
 func (s *server) userRegister(ctx context.Context, u *model.User) (*model.User, int, error) {
