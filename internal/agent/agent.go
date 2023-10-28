@@ -44,7 +44,6 @@ func (a *agent) Start() error {
 	ctx := context.Background()
 	a.configureLogger()
 	a.health(ctx)
-	a.health(ctx)
 	a.userInput()
 	return nil
 }
@@ -105,7 +104,7 @@ func (a *agent) getRequest(ctx context.Context, method string, endpoint string, 
 }
 
 // sendRequest send http request
-func (a *agent) sendRequest(ctx context.Context, path string, method string, v any, rbody bool) {
+func (a *agent) sendRequest(ctx context.Context, path string, method string, v any, rbody bool) int {
 	endpoint := fmt.Sprintf("http://%v/%s", a.config.Host, path)
 	var buf bytes.Buffer
 	a.logger.Debug("sendRequest endpoint: ", endpoint)
@@ -115,12 +114,12 @@ func (a *agent) sendRequest(ctx context.Context, path string, method string, v a
 	req, err := a.getRequest(ctx, method, endpoint, &buf)
 	if err != nil {
 		a.logger.Errorf("agent.sendRequest req err: %s", err.Error())
-		return
+		return 0
 	}
 	resp, err := a.client.Do(req)
 	if err != nil {
 		a.logger.Errorf("agent.sendRequest resp err: %s", err.Error())
-		return
+		return 0
 	}
 	defer resp.Body.Close()
 	a.logger.Debugf("sendRequest response code: %d", resp.StatusCode)
@@ -131,115 +130,118 @@ func (a *agent) sendRequest(ctx context.Context, path string, method string, v a
 	if rbody {
 		fmt.Printf("Response:\n %v", bytes.NewBuffer(bodyBytes).String())
 	}
-
+	return resp.StatusCode
 }
 
 func (a *agent) register(ctx context.Context) {
 	uri := "api/v1/user/register"
 	m := &model.User{Login: a.config.Login, Password: a.config.Password}
-	a.sendRequest(ctx, uri, http.MethodPost, m, false)
+	_ = a.sendRequest(ctx, uri, http.MethodPost, m, false)
 }
 
 func (a *agent) health(ctx context.Context) {
 	uri := "api/v1/private/health"
 	m := &model.User{Login: a.config.Login, Password: a.config.Password}
-	a.sendRequest(ctx, uri, http.MethodGet, m, false)
+	c := a.sendRequest(ctx, uri, http.MethodGet, m, false)
+	if c < 200 || c >= 300 {
+		log.Fatal("Server is not working properly")
+	}
 }
 
 func (a *agent) listLogingWithPassword(ctx context.Context) {
 	uri := "api/v1/private/loginwithpasswords"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
 func (a *agent) getLogingWithPassword(ctx context.Context) {
 	uri := "api/v1/private/loginwithpasswords"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
 func (a *agent) addLogingWithPassword(ctx context.Context, m *model.LoginWithPassword) {
 	uri := "api/v1/private/loginwithpassword"
-	a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) deleteLogingWithPassword(ctx context.Context, id int) {
 	uri := "api/v1/private/loginwithpassword/" + strconv.Itoa(id)
-	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
+	_ = a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
 }
 func (a *agent) updateLogingWithPassword(ctx context.Context, m *model.LoginWithPassword) {
 	uri := "api/v1/private/loginwithpassword"
-	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
 }
 
 func (a *agent) listCreditCard(ctx context.Context) {
 	uri := "api/v1/private/creditcards"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
 func (a *agent) getCreditCard(ctx context.Context) {
-	uri := "api/v1/private/creditcard"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	uri := "api/v1/private/creditcards"
+	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
 func (a *agent) addCreditCard(ctx context.Context, m *model.CreditCard) {
 	uri := "api/v1/private/creditcard"
-	a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) deleteCreditCard(ctx context.Context, id int) {
 	uri := "api/v1/private/creditcard/" + strconv.Itoa(id)
-	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
+	_ = a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
 }
 func (a *agent) updateCreditCard(ctx context.Context, m *model.CreditCard) {
 	uri := "api/v1/private/creditcard"
-	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
 }
 
 func (a *agent) listSecretText(ctx context.Context) {
 	uri := "api/v1/private/secrettexts"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
 func (a *agent) getSecretText(ctx context.Context) {
-	uri := "api/v1/private/secrettext"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	uri := "api/v1/private/secrettexts"
+	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
 func (a *agent) addSecretText(ctx context.Context, m *model.SecretText) {
 	uri := "api/v1/private/secrettext"
-	a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) deleteSecretText(ctx context.Context, id int) {
 	uri := "api/v1/private/secrettext/" + strconv.Itoa(id)
-	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
+	_ = a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
 }
 func (a *agent) updateSecretText(ctx context.Context, m *model.SecretText) {
 	uri := "api/v1/private/secrettext"
-	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
 }
 
 func (a *agent) listSecretFile(ctx context.Context) {
 	uri := "api/v1/private/secretfiles"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
 func (a *agent) getSecretFile(ctx context.Context) {
-	uri := "api/v1/private/secretfile"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	uri := "api/v1/private/secretfiles"
+	_ = a.sendRequest(ctx, uri, http.MethodGet, nil, true)
 }
 
 func (a *agent) addSecretFile(ctx context.Context, m *model.SecretFile) {
 	uri := "api/v1/private/secretfile"
-	a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) deleteSecretFile(ctx context.Context, id int) {
 	uri := "api/v1/private/secretfile/" + strconv.Itoa(id)
-	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
+	_ = a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
 }
 func (a *agent) updateSecretFile(ctx context.Context, m *model.SecretFile) {
 	uri := "api/v1/private/secretfile"
-	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	_ = a.sendRequest(ctx, uri, http.MethodPost, m, true)
 }
 
 func (a *agent) list(ctx context.Context, target string) {
@@ -247,7 +249,7 @@ func (a *agent) list(ctx context.Context, target string) {
 	case "l", "login", "password", "lp":
 		a.listLogingWithPassword(ctx)
 	case "c", "credit", "card", "cc", "creditcard":
-		a.listLogingWithPassword(ctx)
+		a.listCreditCard(ctx)
 	case "t", "text", "secrettext":
 		a.listSecretText(ctx)
 	case "f", "file", "secretfile":

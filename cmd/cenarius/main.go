@@ -21,8 +21,13 @@ type cenariusWorker interface {
 	Shutdown()
 }
 
-var flagsData flags
-var worker cenariusWorker
+var (
+	buildVersion string
+	buildDate    string
+	buildCommit  string
+	flagsData    flags
+	worker       cenariusWorker
+)
 
 func init() {
 	flag.StringVar(&flagsData.mode, "m", "", "server or agent")
@@ -51,6 +56,8 @@ func main() {
 		log.Infof("OS SIGNAL: %v", sig)
 		worker.Shutdown()
 	}()
-
+	log.Infof("Build version: %v", buildVersion)
+	log.Infof("Build date: %v", buildDate)
+	log.Infof("Build commit: %v", buildCommit)
 	worker.Start()
 }

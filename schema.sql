@@ -21,8 +21,8 @@ CREATE TABLE CreditCard(
     "meta" text,
     "owner_name" varchar,
     "owner_last_name" varchar,
-    "number" bigserial,
-    "cvc" int,
+    "number" varchar,
+    "cvc" varchar,
     "created_at" timestamp default NOW()
 );
 
