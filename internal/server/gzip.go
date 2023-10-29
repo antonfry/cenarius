@@ -38,7 +38,9 @@ func gzipHandle(next http.Handler) http.Handler {
 		}
 		gzWriter, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
 		if err != nil {
-			io.WriteString(w, err.Error())
+			if _, err := io.WriteString(w, err.Error()); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+			}
 			return
 		}
 		defer gzWriter.Close()
