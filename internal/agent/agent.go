@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cenarius/internal/model"
 	"cenarius/internal/server"
+	"cenarius/internal/userinput"
 	"compress/gzip"
 	"context"
 	"encoding/base64"
@@ -79,7 +80,10 @@ func (a *agent) write2Buffer(buf *bytes.Buffer, v any) {
 			return
 		}
 	} else {
-		_, _ = io.WriteString(buf, string(jsonData))
+		_, err = io.WriteString(buf, string(jsonData))
+		if err != nil {
+			a.logger.Fatal("agent.write2Buffer err: %s", err.Error())
+		}
 	}
 }
 
@@ -332,7 +336,7 @@ func (a *agent) get(ctx context.Context, target string) {
 		a.getSecretText(ctx)
 	case "f", "file", "secretfile":
 		a.listSecretFile(ctx)
-		id := InputId()
+		id := userinput.InputId()
 		a.getSecretFile(ctx, strconv.Itoa(id))
 	default:
 		log.Fatalf("Unknown target: %s", target)
@@ -342,16 +346,16 @@ func (a *agent) get(ctx context.Context, target string) {
 func (a *agent) add(ctx context.Context, target string) {
 	switch target {
 	case "l", "login", "password", "lp":
-		m := InputLoginWithPassword()
+		m := userinput.InputLoginWithPassword()
 		a.addLogingWithPassword(ctx, m)
 	case "c", "credit", "card", "cc", "creditcard":
-		m := InputCreditCard()
+		m := userinput.InputCreditCard()
 		a.addCreditCard(ctx, m)
 	case "t", "text", "secrettext":
-		m := InputSecretText()
+		m := userinput.InputSecretText()
 		a.addSecretText(ctx, m)
 	case "f", "file", "secretfile":
-		m := InputSecretFile(true)
+		m := userinput.InputSecretFile(true)
 		a.uploadSecretFile(ctx, m)
 	default:
 		log.Fatalf("Unknown target: %s", target)
@@ -362,19 +366,19 @@ func (a *agent) delete(ctx context.Context, target string) {
 	switch target {
 	case "l", "login", "password", "lp":
 		a.listLogingWithPassword(ctx)
-		id := InputId()
+		id := userinput.InputId()
 		a.deleteLogingWithPassword(ctx, id)
 	case "c", "credit", "card", "cc", "creditcard":
 		a.listCreditCard(ctx)
-		id := InputId()
+		id := userinput.InputId()
 		a.deleteCreditCard(ctx, id)
 	case "t", "text", "secrettext":
 		a.listSecretText(ctx)
-		id := InputId()
+		id := userinput.InputId()
 		a.deleteSecretText(ctx, id)
 	case "f", "file", "secretfile":
 		a.listSecretFile(ctx)
-		id := InputId()
+		id := userinput.InputId()
 		a.deleteSecretFile(ctx, id)
 	default:
 		log.Fatalf("Unknown target: %s", target)
@@ -385,26 +389,26 @@ func (a *agent) update(ctx context.Context, target string) {
 	switch target {
 	case "l", "login", "password", "lp":
 		a.listLogingWithPassword(ctx)
-		id := InputId()
-		m := InputLoginWithPassword()
+		id := userinput.InputId()
+		m := userinput.InputLoginWithPassword()
 		m.ID = id
 		a.updateLogingWithPassword(ctx, m)
 	case "c", "credit", "card", "cc", "creditcard":
 		a.listCreditCard(ctx)
-		id := InputId()
-		m := InputCreditCard()
+		id := userinput.InputId()
+		m := userinput.InputCreditCard()
 		m.ID = id
 		a.updateCreditCard(ctx, m)
 	case "t", "text", "secrettext":
 		a.listSecretText(ctx)
-		id := InputId()
-		m := InputSecretText()
+		id := userinput.InputId()
+		m := userinput.InputSecretText()
 		m.ID = id
 		a.updateSecretText(ctx, m)
 	case "f", "file", "secretfile":
 		a.listSecretFile(ctx)
-		id := InputId()
-		m := InputSecretFile(false)
+		id := userinput.InputId()
+		m := userinput.InputSecretFile(false)
 		m.ID = id
 		a.updateSecretFile(ctx, m)
 	default:
@@ -414,13 +418,13 @@ func (a *agent) update(ctx context.Context, target string) {
 
 func (a *agent) userInput() {
 	ctx := context.Background()
-	action := Input("Action")
+	action := userinput.Input("Action")
 	a.logger.Infof("agent.userInput action: %s", action)
 	if action == "register" || action == "r" {
 		a.register(ctx)
 		return
 	}
-	target := Input("Type of secret")
+	target := userinput.Input("Type of secret")
 	switch action {
 	case "list", "l":
 		a.list(ctx, target)

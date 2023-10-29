@@ -13,11 +13,6 @@ import (
 	"github.com/go-chi/chi"
 )
 
-type cenariusSession struct {
-	UserID int
-	secret string
-}
-
 func (s *server) error(w http.ResponseWriter, r *http.Request, code int, err error) {
 	s.respond(w, r, code, map[string]string{"error": err.Error()})
 }
@@ -25,7 +20,9 @@ func (s *server) error(w http.ResponseWriter, r *http.Request, code int, err err
 func (s *server) respond(w http.ResponseWriter, r *http.Request, code int, data any) {
 	w.WriteHeader(code)
 	if data != nil {
-		json.NewEncoder(w).Encode(data)
+		if err := json.NewEncoder(w).Encode(data); err != nil {
+			s.logger.Errorf("server.respond Encode err: %s", err.Error())
+		}
 	}
 }
 

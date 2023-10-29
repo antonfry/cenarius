@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
+	log "github.com/sirupsen/logrus"
 )
 
 type ctxKey int8
@@ -26,7 +27,7 @@ var ErrUnableToGetUserFromRequest = errors.New("unable to get user from request 
 // server server main struct
 type server struct {
 	config     *Config
-	logger     *logrus.Logger
+	logger     *log.Logger
 	HTTPServer *http.Server
 	router     *chi.Mux
 	store      store.Store
@@ -36,10 +37,12 @@ type server struct {
 func NewServer(config *Config) *server {
 	s := &server{
 		config:     config,
-		logger:     logrus.New(),
+		logger:     log.New(),
 		HTTPServer: &http.Server{Addr: config.Bind},
 	}
-	s.configureLogger()
+	if err := s.configureLogger(); err != nil {
+		log.Fatalf("Can't configure logger: %s", err.Error())
+	}
 	s.configureStore()
 
 	return s
