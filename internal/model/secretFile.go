@@ -1,7 +1,8 @@
 package model
 
 import (
-	"bufio"
+	"cenarius/internal/encrypt"
+	"fmt"
 	"io/fs"
 	"os"
 
@@ -14,11 +15,34 @@ type SecretFile struct {
 	Path string `json:"path"`
 }
 
+func (s *SecretFile) String() string {
+	return fmt.Sprintf("ID: %d, User ID: %d, Name: %s, Meta: %s, Path: %s", s.ID, s.UserId, s.Name, s.Meta, s.Path)
+}
+
 func (s *SecretFile) Validate() error {
 	return validation.ValidateStruct(
 		s,
 		validation.Field(&s.Path, validation.Required, validation.Length(10, 200)),
+		validation.Field(&s.UserId, validation.Required, validation.Min(1)),
 	)
+}
+
+func (s *SecretFile) Encrypt(key, iv string) error {
+	encPath, err := encrypt.AESEncrypted(s.Path, key, iv)
+	if err != nil {
+		return err
+	}
+	s.Path = encPath
+	return nil
+}
+
+func (s *SecretFile) Decrypt(key, iv string) error {
+	decPath, err := encrypt.AESDecrypted(s.Path, key, iv)
+	if err != nil {
+		return err
+	}
+	s.Path = decPath
+	return nil
 }
 
 func (s *SecretFile) Remove() error {
@@ -30,39 +54,6 @@ func (s *SecretFile) Remove() error {
 		return err
 	}
 	return nil
-}
-
-func (s *SecretFile) Encrypt(key, iv string) error {
-	return nil
-}
-
-func (s *SecretFile) Decrypt(key, iv string) error {
-	return nil
-}
-
-func (s *SecretFile) Get() ([]byte, error) {
-	if _, err := s.stat(); err != nil {
-		return nil, err
-	}
-	file, err := os.Open(s.Path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	fileStat, err := file.Stat()
-	if err != nil {
-		log.Errorf("Unable to get file stats %v: %v", s, err)
-		return nil, err
-	}
-	reader := bufio.NewReader(file)
-
-	buf := make([]byte, fileStat.Size())
-	_, err = reader.Read(buf)
-	if err != nil {
-		log.Errorf("Unable to read data into buffer: %s, %v", s.Path, err)
-		return nil, err
-	}
-	return buf, nil
 }
 
 func (s *SecretFile) stat() (fs.FileInfo, error) {

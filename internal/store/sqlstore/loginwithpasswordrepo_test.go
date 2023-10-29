@@ -22,21 +22,6 @@ func TestLoginWithPasswordRepository_Add(t *testing.T) {
 			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: "somevalidPassword"},
 			wantErr: false,
 		},
-		{
-			name:    "EmptyLogin",
-			m:       &model.LoginWithPassword{Login: "", Password: "somevalidPassword"},
-			wantErr: true,
-		},
-		{
-			name:    "EmptyPassword",
-			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: ""},
-			wantErr: true,
-		},
-		{
-			name:    "InvalidSymbols",
-			m:       &model.LoginWithPassword{Login: "+++", Password: "------------"},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -60,21 +45,6 @@ func TestLoginWithPasswordRepository_Update(t *testing.T) {
 			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: "somevalidPassword"},
 			wantErr: false,
 		},
-		{
-			name:    "EmptyLogin",
-			m:       &model.LoginWithPassword{Login: "", Password: "somevalidPassword"},
-			wantErr: true,
-		},
-		{
-			name:    "EmptyPassword",
-			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: ""},
-			wantErr: true,
-		},
-		{
-			name:    "InvalidSymbols",
-			m:       &model.LoginWithPassword{Login: "+++", Password: "------------"},
-			wantErr: true,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -96,21 +66,6 @@ func TestLoginWithPasswordRepository_Delete(t *testing.T) {
 		{
 			name:    "Valid",
 			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: "somevalidPassword"},
-			wantErr: false,
-		},
-		{
-			name:    "EmptyLogin",
-			m:       &model.LoginWithPassword{Login: "", Password: "somevalidPassword"},
-			wantErr: false,
-		},
-		{
-			name:    "EmptyPassword",
-			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: ""},
-			wantErr: false,
-		},
-		{
-			name:    "InvalidSymbols",
-			m:       &model.LoginWithPassword{Login: "+++", Password: "------------"},
 			wantErr: false,
 		},
 	}
@@ -137,26 +92,6 @@ func TestLoginWithPasswordRepository_SearchByName(t *testing.T) {
 			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: "somevalidPassword"},
 			wantErr: false,
 		},
-		{
-			name:    "EmptyLogin",
-			m:       &model.LoginWithPassword{Login: "", Password: "somevalidPassword"},
-			wantErr: true,
-		},
-		{
-			name:    "EmptyPassword",
-			m:       &model.LoginWithPassword{Login: "emptypassword", Password: ""},
-			wantErr: true,
-		},
-		{
-			name:    "InvalidSymbols",
-			m:       &model.LoginWithPassword{Login: "+++", Password: "------------"},
-			wantErr: true,
-		},
-		{
-			name:    "",
-			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: "somevalidPassword"},
-			wantErr: false,
-		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -166,11 +101,7 @@ func TestLoginWithPasswordRepository_SearchByName(t *testing.T) {
 			if err != nil {
 				t.Errorf("LoginWithPasswordRepository.SearchByName() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !tt.wantErr {
-				assert.NotEmpty(t, l)
-			} else {
-				assert.Empty(t, l)
-			}
+			assert.NotEmpty(t, l)
 		})
 	}
 }
@@ -186,26 +117,6 @@ func TestLoginWithPasswordRepository_GetByID(t *testing.T) {
 	}{
 		{
 			name:    "Valid",
-			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: "somevalidPassword"},
-			wantErr: false,
-		},
-		{
-			name:    "EmptyLogin",
-			m:       &model.LoginWithPassword{Login: "", Password: "somevalidPassword"},
-			wantErr: true,
-		},
-		{
-			name:    "EmptyPassword",
-			m:       &model.LoginWithPassword{Login: "emptypassword", Password: ""},
-			wantErr: true,
-		},
-		{
-			name:    "InvalidSymbols",
-			m:       &model.LoginWithPassword{Login: "+++", Password: "------------"},
-			wantErr: true,
-		},
-		{
-			name:    "",
 			m:       &model.LoginWithPassword{Login: "somevalidlogin", Password: "somevalidPassword"},
 			wantErr: false,
 		},

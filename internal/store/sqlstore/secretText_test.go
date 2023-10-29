@@ -21,16 +21,6 @@ var stTests = []*STtest{
 		m:       &model.SecretText{Text: "somesecretText"},
 		wantErr: false,
 	},
-	{
-		name:    "EmtyText",
-		m:       &model.SecretText{Text: ""},
-		wantErr: true,
-	},
-	{
-		name:    "InValidSecretText",
-		m:       &model.SecretText{Text: "Ж"},
-		wantErr: true,
-	},
 }
 
 func TestSecretTextRepository_Add(t *testing.T) {

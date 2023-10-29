@@ -44,7 +44,7 @@ func (s *server) configureRouter() {
 func (s *server) privateRouter() *chi.Mux {
 	r := chi.NewRouter()
 	r.Use(s.authenticateUser)
-	r.Get("/health", s.handleHealthCheck())
+	r.Get("/ping", s.handleHealthCheck())
 
 	r.Get("/loginwithpasswords", s.handleLoginWithPasswordSearch())
 	r.Get("/loginwithpassword/{id}", s.handleLoginWithPasswordWithID())
@@ -68,11 +68,10 @@ func (s *server) privateRouter() *chi.Mux {
 	r.Delete("/secrettext/{id}", s.handleSecretTextWithID())
 
 	r.Get("/secretfiles", s.handleSecretFileSearch())
-	r.Post("/secretfile/upload", s.handleFileUpload())
 	r.Get("/secretfile/{id}", s.handleSecretFileWithID())
 	r.Get("/secretfile/search/{name}", s.handleSecretFileSearch())
 	r.Put("/secretfile", s.handleSecretFileWithBody())
-	r.Post("/secretfile", s.handleSecretFileWithBody())
+	r.Post("/secretfile", s.handleFileUpload())
 	r.Delete("/secretfile/{id}", s.handleSecretFileWithID())
 
 	return r
@@ -359,10 +358,11 @@ func (s *server) handleFileUpload() http.HandlerFunc {
 			s.logger.Errorf("Unable to create dir %s", userSecretFilePath)
 		}
 		// Create file locally
-		dst, err := os.Create(path.Join(userSecretFilePath, handler.Filename))
+		storageFilePath := path.Join(userSecretFilePath, handler.Filename)
+		dst, err := os.Create(storageFilePath)
 		if err != nil {
 			s.logger.Error(err)
-			s.error(w, r, http.StatusInternalServerError, fmt.Errorf("server.handleFileUpload can't create temp file in %s", userSecretFilePath))
+			s.error(w, r, http.StatusInternalServerError, fmt.Errorf("server.handleFileUpload can't create  file in %s", userSecretFilePath))
 			return
 		}
 		defer dst.Close()
@@ -370,9 +370,19 @@ func (s *server) handleFileUpload() http.HandlerFunc {
 		// Copy the uploaded file data to the newly created file on the filesystem
 		if _, err := io.Copy(dst, file); err != nil {
 			s.logger.Error(err)
-			s.error(w, r, http.StatusInternalServerError, fmt.Errorf("server.handleFileUpload can't copy to temp file"))
+			s.error(w, r, http.StatusInternalServerError, fmt.Errorf("server.handleFileUpload can't copy to  file"))
 			return
 		}
+		m := &model.SecretFile{
+			Path: storageFilePath,
+		}
+		m.UserId = user.ID
+		m, err = s.addSecretFile(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16])
+		if err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		s.respond(w, r, http.StatusCreated, m)
 	}
 }
 
@@ -384,26 +394,19 @@ func (s *server) handleSecretFileWithBody() http.HandlerFunc {
 			s.error(w, r, http.StatusBadRequest, err)
 			return
 		}
+		s.logger.Infof("server.handleSecretFileWithBody got secretfile: %v", m)
 		user, ok := r.Context().Value(ctxKeyUser).(*model.User)
 		if !ok {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 			return
 		}
 		m.UserId = user.ID
-		switch r.Method {
-		case "POST":
-			if _, err := s.addSecretFile(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
-				s.error(w, r, http.StatusInternalServerError, err)
-				return
-			}
-		case "PUT":
-			if _, err := s.updateSecretFile(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
-				s.error(w, r, http.StatusInternalServerError, err)
-				return
-			}
-		default:
-			s.error(w, r, http.StatusBadRequest, fmt.Errorf("unknown type of request in handleSecretFileWithBody: %s", r.Method))
+
+		if _, err := s.updateSecretFile(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
+			s.error(w, r, http.StatusInternalServerError, err)
+			return
 		}
+
 		s.respond(w, r, http.StatusOK, m)
 	}
 }
@@ -425,7 +428,7 @@ func (s *server) handleSecretFileWithID() http.HandlerFunc {
 		}
 		switch r.Method {
 		case "GET":
-			if m, err = s.getSecretFile(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
+			if m, err = s.getSecretFile(r.Context(), m.ID, m.UserId, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}

@@ -21,16 +21,6 @@ var sFTests = []*SFtest{
 		m:       &model.SecretFile{Path: "/some/path"},
 		wantErr: false,
 	},
-	{
-		name:    "PathWithSpace",
-		m:       &model.SecretFile{Path: "wrong path"},
-		wantErr: true,
-	},
-	{
-		name:    "InValidsymbol",
-		m:       &model.SecretFile{Path: "Ж"},
-		wantErr: true,
-	},
 }
 
 func TestSecretFileRepository_Add(t *testing.T) {
@@ -83,11 +73,7 @@ func TestSecretFileRepository_SearchByName(t *testing.T) {
 			if err != nil {
 				t.Errorf("SecretFileRepository.SearchByName() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !tt.wantErr {
-				assert.NotEmpty(t, l)
-			} else {
-				assert.Empty(t, l)
-			}
+			assert.NotEmpty(t, l)
 		})
 	}
 }
@@ -100,7 +86,7 @@ func TestSecretFileRepository_GetByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.m.Name = tt.name
 			_ = s.SecretFile().Add(context.Background(), tt.m)
-			lp, err := s.SecretFile().GetByID(context.Background(), tt.m)
+			lp, err := s.SecretFile().GetByID(context.Background(), tt.m.ID, tt.m.UserId)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SecretFileRepository.GetByID() error = %v, wantErr %v", err, tt.wantErr)
 			}

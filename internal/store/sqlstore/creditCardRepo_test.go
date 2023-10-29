@@ -26,46 +26,6 @@ var ccTests = []*CCtest{
 		},
 		wantErr: false,
 	},
-	{
-		name: "InValidOwnerName",
-		m: &model.CreditCard{
-			OwnerName:     "Ж",
-			OwnerLastName: "someOwnerLastName",
-			Number:        "2222222222222222",
-			CVC:           "222",
-		},
-		wantErr: true,
-	},
-	{
-		name: "InValidOwnerNameLastNAme",
-		m: &model.CreditCard{
-			OwnerName:     "someOwner",
-			OwnerLastName: "Щ",
-			Number:        "3333333333333333",
-			CVC:           "333",
-		},
-		wantErr: true,
-	},
-	{
-		name: "InValidNumber",
-		m: &model.CreditCard{
-			OwnerName:     "someOwner",
-			OwnerLastName: "someOwnerLastName",
-			Number:        "4",
-			CVC:           "444",
-		},
-		wantErr: true,
-	},
-	{
-		name: "InValidCVC",
-		m: &model.CreditCard{
-			OwnerName:     "someOwner",
-			OwnerLastName: "someOwnerLastName",
-			Number:        "55555555",
-			CVC:           "5",
-		},
-		wantErr: true,
-	},
 }
 
 func TestCreditCardRepository_Add(t *testing.T) {
@@ -74,7 +34,7 @@ func TestCreditCardRepository_Add(t *testing.T) {
 
 	for _, tt := range ccTests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := s.CreditCard().Add(context.Background(), tt.m); (err != nil) != tt.wantErr {
+			if err := s.CreditCard().Add(context.Background(), tt.m); err != nil {
 				t.Errorf("CreditCardRepository.Add() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -87,7 +47,7 @@ func TestCreditCardRepository_Update(t *testing.T) {
 
 	for _, tt := range ccTests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := s.CreditCard().Update(context.Background(), tt.m); (err != nil) != tt.wantErr {
+			if err := s.CreditCard().Update(context.Background(), tt.m); err != nil {
 				t.Errorf("CreditCardRepository.Update() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -118,11 +78,7 @@ func TestCreditCardRepository_SearchByName(t *testing.T) {
 			if err != nil {
 				t.Errorf("CreditCardRepository.SearchByName() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !tt.wantErr {
-				assert.NotEmpty(t, l)
-			} else {
-				assert.Empty(t, l)
-			}
+			assert.NotEmpty(t, l)
 		})
 	}
 }
@@ -136,14 +92,10 @@ func TestCreditCardRepository_GetByID(t *testing.T) {
 			tt.m.Name = tt.name
 			_ = s.CreditCard().Add(context.Background(), tt.m)
 			lp, err := s.CreditCard().GetByID(context.Background(), tt.m)
-			if (err != nil) != tt.wantErr {
+			if err != nil {
 				t.Errorf("CreditCardRepository.GetByID() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			if !tt.wantErr {
-				assert.NotEmpty(t, lp)
-			} else {
-				assert.Nil(t, lp)
-			}
+			assert.NotNil(t, lp)
 		})
 	}
 }

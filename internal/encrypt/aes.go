@@ -63,23 +63,3 @@ func AESEncrypted(plaintext, key, iv string) (string, error) {
 
 	return str, nil
 }
-
-// func main() {
-// 	plainText := "Hello, World!"
-// 	fmt.Println("This is an original:", plainText)
-
-// 	encrypted, err := AESEncrypted(plainText)
-
-// 	if err != nil {
-// 		fmt.Println("Error during encryption", err)
-// 	}
-
-// 	fmt.Println("This is an encrypted:", encrypted)
-
-// 	decrypted, err := AESDecrypted(encrypted)
-
-// 	if err != nil {
-// 		fmt.Println("Error during decryption", err)
-// 	}
-// 	fmt.Println("This is a decrypted:", string(decrypted))
-// }

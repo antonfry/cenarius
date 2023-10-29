@@ -37,7 +37,7 @@ type SecretTextRepository interface {
 
 type SecretFileRepository interface {
 	SearchByName(context.Context, string, int) ([]*model.SecretFile, error)
-	GetByID(context.Context, *model.SecretFile) (*model.SecretFile, error)
+	GetByID(context.Context, int, int) (*model.SecretFile, error)
 	Add(context.Context, *model.SecretFile) error
 	Update(context.Context, *model.SecretFile) error
 	Delete(context.Context, *model.SecretFile) error

@@ -30,12 +30,11 @@ func (r *SecretFileRepository) Add(ctx context.Context, m *model.SecretFile) err
 
 func (r *SecretFileRepository) Update(ctx context.Context, m *model.SecretFile) error {
 	if _, err := r.store.db.ExecContext(
-		ctx, "UPDATE SecretFile SET user_id=$1, name=$2, meta=$3, path=$4 WHERE id=$5",
-		m.UserId,
+		ctx, "UPDATE SecretFile SET name=$1, meta=$2 WHERE id=$3 AND user_id=$4",
 		m.Name,
 		m.Meta,
-		m.Path,
 		m.ID,
+		m.UserId,
 	); err != nil {
 		return err
 	}
@@ -82,11 +81,14 @@ func (r *SecretFileRepository) SearchByName(ctx context.Context, name string, id
 	return mm, nil
 }
 
-func (r *SecretFileRepository) GetByID(ctx context.Context, m *model.SecretFile) (*model.SecretFile, error) {
+func (r *SecretFileRepository) GetByID(ctx context.Context, id, user_id int) (*model.SecretFile, error) {
+	m := &model.SecretFile{}
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT name, meta, path FROM SecretFile WHERE id = $1 AND user_id = $2", m.ID, m.UserId,
+		ctx, "SELECT name, meta, path FROM SecretFile WHERE id = $1 AND user_id = $2", id, user_id,
 	).Scan(&m.Name, &m.Meta, &m.Path); err != nil {
 		return nil, err
 	}
+	m.ID = id
+	m.UserId = user_id
 	return m, nil
 }

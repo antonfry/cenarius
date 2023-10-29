@@ -11,7 +11,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/sirupsen/logrus"
-	"google.golang.org/grpc"
 )
 
 type ctxKey int8
@@ -28,7 +27,6 @@ type server struct {
 	logger        *logrus.Logger
 	HTTPServer    *http.Server
 	router        *chi.Mux
-	GRPCServer    *grpc.Server
 	store         store.Store
 	allowedSubnet *net.IPNet
 }
@@ -44,25 +42,6 @@ func NewServer(config *Config) *server {
 	s.configureStore()
 
 	return s
-}
-
-// StartHTTPServer starts GRPC Server
-func (s *server) StartGRPCServer() {
-	s.logger.Infof("Starting Grpc server with config: %v\n", s.config)
-	listen, err := net.Listen("tcp", s.config.Bind)
-	if err != nil {
-		s.logger.Fatal(err)
-	}
-	s.GRPCServer = grpc.NewServer(grpc.UnaryInterceptor(s.unaryInterceptor))
-	if err := s.GRPCServer.Serve(listen); err != nil {
-		s.logger.Fatal(err)
-	}
-	s.logger.Infof("GRPC server stopped with config: %v\n", s.config)
-}
-
-// StopGRPCServer stops grpc server
-func (s *server) StopGRPCServer() {
-	s.GRPCServer.GracefulStop()
 }
 
 // StartHTTPServer starts GRPC Server
@@ -87,29 +66,14 @@ func (s *server) StopHTTPServer() {
 
 // Start starts the server
 func (s *server) Start() error {
-	switch {
-	case s.config.Mode == "GRPC":
-		s.StartGRPCServer()
-	case s.config.Mode == "HTTP":
-		s.StartHTTPServer()
-	default:
-		s.logger.Fatalf("Unknow node %s", s.config.Mode)
-		return nil
-	}
+	s.StartHTTPServer()
 	return nil
 }
 
 // Shutdown shutdowns the server
 func (s *server) Shutdown() {
 	s.logger.Info("Shuting down...")
-	switch {
-	case s.config.Mode == "GRPC":
-		s.StopGRPCServer()
-	case s.config.Mode == "HTTP":
-		s.StopHTTPServer()
-	default:
-		s.logger.Fatalf("Unknow node %s", s.config.Mode)
-	}
+	s.StopHTTPServer()
 	s.store.Close()
 	s.logger.Info("Done ShutDown")
 }
@@ -234,7 +198,7 @@ func (s *server) updateLoginWithPassword(ctx context.Context, m *model.LoginWith
 		s.logger.Errorf("Failed to add LoginWithPassword %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Debugf("LoginWithPassword updated: %v", m)
+	s.logger.Infof("LoginWithPassword updated: %v", m)
 	return m, nil
 }
 
@@ -249,7 +213,7 @@ func (s *server) updateCreditCard(ctx context.Context, m *model.CreditCard, key,
 		s.logger.Errorf("Failed to add CreditCard %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Debugf("CreditCard updated: %v", m)
+	s.logger.Infof("CreditCard updated: %v", m)
 	return m, nil
 }
 
@@ -264,22 +228,26 @@ func (s *server) updateSecretText(ctx context.Context, m *model.SecretText, key,
 		s.logger.Errorf("Failed to add SecretText %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Debugf("SecretText updated: %v", m)
+	s.logger.Infof("SecretText updated: %v", m)
 	return m, nil
 }
 
 func (s *server) updateSecretFile(ctx context.Context, m *model.SecretFile, key, iv string) (*model.SecretFile, error) {
-	if err := m.Validate(); err != nil {
+	storageFile, err := s.store.SecretFile().GetByID(ctx, m.ID, m.UserId)
+	if err != nil {
+		s.logger.Errorf("Unable to find SecretFile in db %v: %v", m, err)
 		return nil, err
 	}
-	if err := m.Encrypt(key, iv); err != nil {
+	m.Path = storageFile.Path
+	if err := m.Validate(); err != nil {
+		s.logger.Errorf("SecretFile validation failed %v: %v", m, err)
 		return nil, err
 	}
 	if err := s.store.SecretFile().Update(ctx, m); err != nil {
 		s.logger.Errorf("Failed to add SecretFile %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Debugf("SecretFile updated: %v", m)
+	s.logger.Infof("SecretFile updated: %v", m)
 	return m, nil
 }
 
@@ -344,8 +312,9 @@ func (s *server) getSecretText(ctx context.Context, m *model.SecretText, key, iv
 	return m, nil
 }
 
-func (s *server) getSecretFile(ctx context.Context, m *model.SecretFile, key, iv string) (*model.SecretFile, error) {
-	m, err := s.store.SecretFile().GetByID(ctx, m)
+func (s *server) getSecretFile(ctx context.Context, id, user_id int, key, iv string) (*model.SecretFile, error) {
+	m := &model.SecretFile{}
+	m, err := s.store.SecretFile().GetByID(ctx, id, user_id)
 	if err != nil {
 		return nil, err
 	}
