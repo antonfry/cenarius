@@ -12,6 +12,7 @@
 *.out
 
 # Binaries
+cmd/cenarius/cenarius
 cmd/agent/main
 cmd/agent/agent
 cmd/server/main
