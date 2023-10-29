@@ -21,9 +21,9 @@ func Input(w string) string {
 	return strings.Trim(text, "\n")
 }
 
-func InputId() int {
-	inputId := Input("Id of secret")
-	id, err := strconv.Atoi(inputId)
+func InputID() int {
+	InputID := Input("Id of secret")
+	id, err := strconv.Atoi(InputID)
 	if err != nil {
 		log.Fatalf("Wrong id: %s", err.Error())
 	}

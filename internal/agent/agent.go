@@ -40,7 +40,9 @@ func NewAgent(config *Config) *agent {
 // Start starts the agent
 func (a *agent) Start() error {
 	ctx := context.Background()
-	a.configureLogger()
+	if err := a.configureLogger(); err != nil {
+		log.Fatal(err)
+	}
 	a.ping(ctx)
 	a.userInput()
 	return nil
@@ -82,7 +84,7 @@ func (a *agent) write2Buffer(buf *bytes.Buffer, v any) {
 	} else {
 		_, err = io.WriteString(buf, string(jsonData))
 		if err != nil {
-			a.logger.Fatal("agent.write2Buffer err: %s", err.Error())
+			a.logger.Fatalf("agent.write2Buffer err: %s", err.Error())
 		}
 	}
 }
@@ -109,13 +111,13 @@ func (a *agent) getRequest(ctx context.Context, method string, endpoint string, 
 	return req, nil
 }
 
-func (a *agent) geHTTPtUrl(path string) string {
+func (a *agent) geHTTPtURL(path string) string {
 	return fmt.Sprintf("http://%v/%s", a.config.Host, path)
 }
 
 // sendRequest send http request
 func (a *agent) sendRequest(ctx context.Context, path string, method string, v any, rbody bool) {
-	endpoint := a.geHTTPtUrl(path)
+	endpoint := a.geHTTPtURL(path)
 	var buf bytes.Buffer
 	a.logger.Debug("sendRequest endpoint: ", endpoint)
 	if v != nil {
@@ -233,7 +235,7 @@ func (a *agent) listSecretFile(ctx context.Context) {
 
 func (a *agent) getSecretFile(ctx context.Context, id string) {
 	uri := "api/v1/private/secretfile/" + id
-	endpoint := a.geHTTPtUrl(uri)
+	endpoint := a.geHTTPtURL(uri)
 
 	// req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
 	// if err != nil {
@@ -281,7 +283,7 @@ func (a *agent) uploadSecretFile(ctx context.Context, m *model.SecretFile) {
 	}
 	io.Copy(part, file)
 	writer.Close()
-	endpoint := a.geHTTPtUrl(uri)
+	endpoint := a.geHTTPtURL(uri)
 	req, err := a.getRequest(ctx, http.MethodPost, endpoint, body)
 	if err != nil {
 		a.logger.Fatalf("agent.addSecretFile req err: %s", err.Error())
@@ -336,7 +338,7 @@ func (a *agent) get(ctx context.Context, target string) {
 		a.getSecretText(ctx)
 	case "f", "file", "secretfile":
 		a.listSecretFile(ctx)
-		id := userinput.InputId()
+		id := userinput.InputID()
 		a.getSecretFile(ctx, strconv.Itoa(id))
 	default:
 		log.Fatalf("Unknown target: %s", target)
@@ -366,19 +368,19 @@ func (a *agent) delete(ctx context.Context, target string) {
 	switch target {
 	case "l", "login", "password", "lp":
 		a.listLogingWithPassword(ctx)
-		id := userinput.InputId()
+		id := userinput.InputID()
 		a.deleteLogingWithPassword(ctx, id)
 	case "c", "credit", "card", "cc", "creditcard":
 		a.listCreditCard(ctx)
-		id := userinput.InputId()
+		id := userinput.InputID()
 		a.deleteCreditCard(ctx, id)
 	case "t", "text", "secrettext":
 		a.listSecretText(ctx)
-		id := userinput.InputId()
+		id := userinput.InputID()
 		a.deleteSecretText(ctx, id)
 	case "f", "file", "secretfile":
 		a.listSecretFile(ctx)
-		id := userinput.InputId()
+		id := userinput.InputID()
 		a.deleteSecretFile(ctx, id)
 	default:
 		log.Fatalf("Unknown target: %s", target)
@@ -389,25 +391,25 @@ func (a *agent) update(ctx context.Context, target string) {
 	switch target {
 	case "l", "login", "password", "lp":
 		a.listLogingWithPassword(ctx)
-		id := userinput.InputId()
+		id := userinput.InputID()
 		m := userinput.InputLoginWithPassword()
 		m.ID = id
 		a.updateLogingWithPassword(ctx, m)
 	case "c", "credit", "card", "cc", "creditcard":
 		a.listCreditCard(ctx)
-		id := userinput.InputId()
+		id := userinput.InputID()
 		m := userinput.InputCreditCard()
 		m.ID = id
 		a.updateCreditCard(ctx, m)
 	case "t", "text", "secrettext":
 		a.listSecretText(ctx)
-		id := userinput.InputId()
+		id := userinput.InputID()
 		m := userinput.InputSecretText()
 		m.ID = id
 		a.updateSecretText(ctx, m)
 	case "f", "file", "secretfile":
 		a.listSecretFile(ctx)
-		id := userinput.InputId()
+		id := userinput.InputID()
 		m := userinput.InputSecretFile(false)
 		m.ID = id
 		a.updateSecretFile(ctx, m)

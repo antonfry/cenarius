@@ -59,5 +59,7 @@ func main() {
 	log.Infof("Build version: %v", buildVersion)
 	log.Infof("Build date: %v", buildDate)
 	log.Infof("Build commit: %v", buildCommit)
-	worker.Start()
+	if err := worker.Start(); err != nil {
+		log.Fatal(err)
+	}
 }

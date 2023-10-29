@@ -81,14 +81,14 @@ func (r *SecretFileRepository) SearchByName(ctx context.Context, name string, id
 	return mm, nil
 }
 
-func (r *SecretFileRepository) GetByID(ctx context.Context, id, user_id int) (*model.SecretFile, error) {
+func (r *SecretFileRepository) GetByID(ctx context.Context, id, userID int) (*model.SecretFile, error) {
 	m := &model.SecretFile{}
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT name, meta, path FROM SecretFile WHERE id = $1 AND user_id = $2", id, user_id,
+		ctx, "SELECT name, meta, path FROM SecretFile WHERE id = $1 AND user_id = $2", id, userID,
 	).Scan(&m.Name, &m.Meta, &m.Path); err != nil {
 		return nil, err
 	}
 	m.ID = id
-	m.UserID = user_id
+	m.UserID = userID
 	return m, nil
 }

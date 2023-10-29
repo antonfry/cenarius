@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
-	"github.com/sirupsen/logrus"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -84,7 +83,7 @@ func (s *server) Shutdown() {
 
 // configureLogger configures logger
 func (s *server) configureLogger() error {
-	level, err := logrus.ParseLevel(s.config.LogLevel)
+	level, err := log.ParseLevel(s.config.LogLevel)
 	if err != nil {
 		return err
 	}
@@ -317,7 +316,6 @@ func (s *server) getSecretText(ctx context.Context, m *model.SecretText, key, iv
 }
 
 func (s *server) getSecretFile(ctx context.Context, id, user_id int, key, iv string) (*model.SecretFile, error) {
-	m := &model.SecretFile{}
 	m, err := s.store.SecretFile().GetByID(ctx, id, user_id)
 	if err != nil {
 		return nil, err
