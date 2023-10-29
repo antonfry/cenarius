@@ -315,8 +315,8 @@ func (s *server) getSecretText(ctx context.Context, m *model.SecretText, key, iv
 	return m, nil
 }
 
-func (s *server) getSecretFile(ctx context.Context, id, user_id int, key, iv string) (*model.SecretFile, error) {
-	m, err := s.store.SecretFile().GetByID(ctx, id, user_id)
+func (s *server) getSecretFile(ctx context.Context, id, userID int, key, iv string) (*model.SecretFile, error) {
+	m, err := s.store.SecretFile().GetByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}

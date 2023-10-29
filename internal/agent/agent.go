@@ -82,8 +82,7 @@ func (a *agent) write2Buffer(buf *bytes.Buffer, v any) {
 			return
 		}
 	} else {
-		_, err = io.WriteString(buf, string(jsonData))
-		if err != nil {
+		if _, err := io.WriteString(buf, string(jsonData)); err != nil {
 			a.logger.Fatalf("agent.write2Buffer err: %s", err.Error())
 		}
 	}
@@ -281,7 +280,9 @@ func (a *agent) uploadSecretFile(ctx context.Context, m *model.SecretFile) {
 	if err != nil {
 		a.logger.Fatalf("agent.addSecretFile CreateFormFile %s: %s", file.Name(), err.Error())
 	}
-	io.Copy(part, file)
+	if _, err := io.Copy(part, file); err != nil {
+		a.logger.Fatalf("Failed copy part of file: %s", err.Error())
+	}
 	writer.Close()
 	endpoint := a.geHTTPtURL(uri)
 	req, err := a.getRequest(ctx, http.MethodPost, endpoint, body)
