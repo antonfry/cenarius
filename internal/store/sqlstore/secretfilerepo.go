@@ -18,7 +18,7 @@ func (r *SecretFileRepository) Ping() error {
 func (r *SecretFileRepository) Add(ctx context.Context, m *model.SecretFile) error {
 	if err := r.store.db.QueryRowContext(
 		ctx, "INSERT INTO SecretFile (user_id, name, meta, path) VALUES($1, $2, $3, $4) RETURNING id",
-		m.UserId,
+		m.UserID,
 		m.Name,
 		m.Meta,
 		m.Path,
@@ -34,7 +34,7 @@ func (r *SecretFileRepository) Update(ctx context.Context, m *model.SecretFile) 
 		m.Name,
 		m.Meta,
 		m.ID,
-		m.UserId,
+		m.UserID,
 	); err != nil {
 		return err
 	}
@@ -42,7 +42,7 @@ func (r *SecretFileRepository) Update(ctx context.Context, m *model.SecretFile) 
 }
 
 func (r *SecretFileRepository) Delete(ctx context.Context, m *model.SecretFile) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretFile WHERE id = $1 AND user_id = $2", m.ID, m.UserId); err != nil {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretFile WHERE id = $1 AND user_id = $2", m.ID, m.UserID); err != nil {
 		return err
 	}
 	return nil
@@ -50,14 +50,14 @@ func (r *SecretFileRepository) Delete(ctx context.Context, m *model.SecretFile) 
 
 func (r *SecretFileRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.SecretFile, error) {
 	mm := make([]*model.SecretFile, 0)
-	sql_string := "SELECT id, name, meta, path FROM SecretFile WHERE user_id=$1"
+	sqlString := "SELECT id, name, meta, path FROM SecretFile WHERE user_id=$1"
 	args := []any{id}
 	if name != "" {
-		sql_string += " AND name like $2"
+		sqlString += " AND name like $2"
 		args = append(args, name)
 	}
 	rows, err := r.store.db.QueryContext(
-		ctx, sql_string, args...,
+		ctx, sqlString, args...,
 	)
 	if err != nil {
 		return nil, err
@@ -65,7 +65,7 @@ func (r *SecretFileRepository) SearchByName(ctx context.Context, name string, id
 	defer rows.Close()
 	for rows.Next() {
 		m := &model.SecretFile{}
-		m.UserId = id
+		m.UserID = id
 		err = rows.Scan(&m.ID, &m.Name, &m.Meta, &m.Path)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -89,6 +89,6 @@ func (r *SecretFileRepository) GetByID(ctx context.Context, id, user_id int) (*m
 		return nil, err
 	}
 	m.ID = id
-	m.UserId = user_id
+	m.UserID = user_id
 	return m, nil
 }

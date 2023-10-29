@@ -294,7 +294,7 @@ func (a *agent) uploadSecretFile(ctx context.Context, m *model.SecretFile) {
 	}
 	a.logger.Infof("agent.uploadSecretFile uploaded: %v", responseM)
 	m.ID = responseM.ID
-	m.UserId = responseM.ID
+	m.UserID = responseM.ID
 	a.updateSecretFile(ctx, m)
 }
 

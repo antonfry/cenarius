@@ -5,7 +5,7 @@ import (
 	"cenarius/internal/store"
 	"cenarius/internal/store/sqlstore"
 	"context"
-	"net"
+	"errors"
 	"net/http"
 	"time"
 
@@ -21,14 +21,15 @@ const (
 	ctxKeyRequestID
 )
 
+var ErrUnableToGetUserFromRequest = errors.New("unable to get user from request context")
+
 // server server main struct
 type server struct {
-	config        *Config
-	logger        *logrus.Logger
-	HTTPServer    *http.Server
-	router        *chi.Mux
-	store         store.Store
-	allowedSubnet *net.IPNet
+	config     *Config
+	logger     *logrus.Logger
+	HTTPServer *http.Server
+	router     *chi.Mux
+	store      store.Store
 }
 
 // NewServer returns new server object
@@ -233,7 +234,7 @@ func (s *server) updateSecretText(ctx context.Context, m *model.SecretText, key,
 }
 
 func (s *server) updateSecretFile(ctx context.Context, m *model.SecretFile, key, iv string) (*model.SecretFile, error) {
-	storageFile, err := s.store.SecretFile().GetByID(ctx, m.ID, m.UserId)
+	storageFile, err := s.store.SecretFile().GetByID(ctx, m.ID, m.UserID)
 	if err != nil {
 		s.logger.Errorf("Unable to find SecretFile in db %v: %v", m, err)
 		return nil, err

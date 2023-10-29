@@ -16,14 +16,14 @@ type SecretFile struct {
 }
 
 func (s *SecretFile) String() string {
-	return fmt.Sprintf("ID: %d, User ID: %d, Name: %s, Meta: %s, Path: %s", s.ID, s.UserId, s.Name, s.Meta, s.Path)
+	return fmt.Sprintf("ID: %d, User ID: %d, Name: %s, Meta: %s, Path: %s", s.ID, s.UserID, s.Name, s.Meta, s.Path)
 }
 
 func (s *SecretFile) Validate() error {
 	return validation.ValidateStruct(
 		s,
 		validation.Field(&s.Path, validation.Required, validation.Length(10, 200)),
-		validation.Field(&s.UserId, validation.Required, validation.Min(1)),
+		validation.Field(&s.UserID, validation.Required, validation.Min(1)),
 	)
 }
 

@@ -20,7 +20,7 @@ func (r *LoginWithPasswordRepository) Ping() error {
 func (r *LoginWithPasswordRepository) Add(ctx context.Context, m *model.LoginWithPassword) error {
 	if err := r.store.db.QueryRowContext(
 		ctx, "INSERT INTO LoginWithPassword (user_id, name, meta, login, password) VALUES($1, $2, $3, $4, $5) RETURNING id",
-		m.UserId,
+		m.UserID,
 		m.Name,
 		m.Meta,
 		m.Login,
@@ -38,7 +38,7 @@ func (r *LoginWithPasswordRepository) Update(ctx context.Context, m *model.Login
 		m.Meta,
 		m.Login,
 		m.Password,
-		m.UserId,
+		m.UserID,
 		m.ID,
 	); err != nil {
 		return err
@@ -47,7 +47,7 @@ func (r *LoginWithPasswordRepository) Update(ctx context.Context, m *model.Login
 }
 
 func (r *LoginWithPasswordRepository) Delete(ctx context.Context, m *model.LoginWithPassword) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.ID, m.UserId); err != nil {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.ID, m.UserID); err != nil {
 		return err
 	}
 	return nil
@@ -55,15 +55,15 @@ func (r *LoginWithPasswordRepository) Delete(ctx context.Context, m *model.Login
 
 func (r *LoginWithPasswordRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.LoginWithPassword, error) {
 	mm := make([]*model.LoginWithPassword, 0)
-	sql_string := "SELECT id, name, meta, login, password FROM LoginWithPassword WHERE user_id=$1"
+	sqlString := "SELECT id, name, meta, login, password FROM LoginWithPassword WHERE user_id=$1"
 	args := []any{id}
 	if name != "" {
-		sql_string += " AND name like $2"
+		sqlString += " AND name like $2"
 		args = append(args, name)
 	}
-	log.Debugf(sql_string)
+	log.Debugf(sqlString)
 	rows, err := r.store.db.QueryContext(
-		ctx, sql_string, args...,
+		ctx, sqlString, args...,
 	)
 	if err != nil {
 		log.Errorf("Unable to QueryContext in (r *LoginWithPasswordRepository) SearchByName: %v", err)
@@ -73,7 +73,7 @@ func (r *LoginWithPasswordRepository) SearchByName(ctx context.Context, name str
 	defer rows.Close()
 	for rows.Next() {
 		m := &model.LoginWithPassword{}
-		m.UserId = id
+		m.UserID = id
 		err = rows.Scan(&m.ID, &m.Name, &m.Meta, &m.Login, &m.Password)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -92,7 +92,7 @@ func (r *LoginWithPasswordRepository) SearchByName(ctx context.Context, name str
 
 func (r *LoginWithPasswordRepository) GetByID(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT name, meta, login, password FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.ID, m.UserId,
+		ctx, "SELECT name, meta, login, password FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.ID, m.UserID,
 	).Scan(&m.Name, &m.Meta, &m.Login, &m.Password); err != nil {
 		return nil, err
 	}

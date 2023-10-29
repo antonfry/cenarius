@@ -14,7 +14,7 @@ import (
 )
 
 type cenariusSession struct {
-	userId int
+	UserID int
 	secret string
 }
 
@@ -114,7 +114,7 @@ func (s *server) handleLoginWithPasswordWithBody() http.HandlerFunc {
 			return
 		}
 		fmt.Println(user)
-		m.UserId = user.ID
+		m.UserID = user.ID
 		switch r.Method {
 		case "POST":
 			if _, err := s.addLoginWithPassword(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
@@ -138,7 +138,7 @@ func (s *server) handleLoginWithPasswordWithID() http.HandlerFunc {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 			return
 		}
-		m.UserId = user.ID
+		m.UserID = user.ID
 		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
@@ -192,7 +192,7 @@ func (s *server) handleCreditCardWithBody() http.HandlerFunc {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 			return
 		}
-		m.UserId = user.ID
+		m.UserID = user.ID
 		switch r.Method {
 		case "POST":
 			if _, err := s.addCreditCard(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
@@ -217,7 +217,7 @@ func (s *server) handleCreditCardWithID() http.HandlerFunc {
 		if !ok {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 		}
-		m.UserId = user.ID
+		m.UserID = user.ID
 		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
@@ -268,7 +268,7 @@ func (s *server) handleSecretTextWithBody() http.HandlerFunc {
 		if !ok {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 		}
-		m.UserId = user.ID
+		m.UserID = user.ID
 		switch r.Method {
 		case "POST":
 			if _, err := s.addSecretText(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
@@ -294,7 +294,7 @@ func (s *server) handleSecretTextWithID() http.HandlerFunc {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 			return
 		}
-		m.UserId = user.ID
+		m.UserID = user.ID
 		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
@@ -376,7 +376,7 @@ func (s *server) handleFileUpload() http.HandlerFunc {
 		m := &model.SecretFile{
 			Path: storageFilePath,
 		}
-		m.UserId = user.ID
+		m.UserID = user.ID
 		m, err = s.addSecretFile(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16])
 		if err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
@@ -400,7 +400,7 @@ func (s *server) handleSecretFileWithBody() http.HandlerFunc {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 			return
 		}
-		m.UserId = user.ID
+		m.UserID = user.ID
 
 		if _, err := s.updateSecretFile(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 			s.error(w, r, http.StatusInternalServerError, err)
@@ -420,7 +420,7 @@ func (s *server) handleSecretFileWithID() http.HandlerFunc {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 			return
 		}
-		m.UserId = user.ID
+		m.UserID = user.ID
 		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
@@ -428,7 +428,7 @@ func (s *server) handleSecretFileWithID() http.HandlerFunc {
 		}
 		switch r.Method {
 		case "GET":
-			if m, err = s.getSecretFile(r.Context(), m.ID, m.UserId, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
+			if m, err = s.getSecretFile(r.Context(), m.ID, m.UserID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}

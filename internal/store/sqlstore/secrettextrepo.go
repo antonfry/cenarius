@@ -18,7 +18,7 @@ func (r *SecretTextRepository) Ping() error {
 func (r *SecretTextRepository) Add(ctx context.Context, m *model.SecretText) error {
 	if err := r.store.db.QueryRowContext(
 		ctx, "INSERT INTO SecretText (user_id, name, meta, text) VALUES($1, $2, $3, $4) RETURNING id",
-		m.UserId,
+		m.UserID,
 		m.Name,
 		m.Meta,
 		m.Text,
@@ -31,7 +31,7 @@ func (r *SecretTextRepository) Add(ctx context.Context, m *model.SecretText) err
 func (r *SecretTextRepository) Update(ctx context.Context, m *model.SecretText) error {
 	if _, err := r.store.db.ExecContext(
 		ctx, "UPDATE SecretText SET user_id=$1, name=$2, meta=$3, text=$4 WHERE id=$5",
-		m.UserId,
+		m.UserID,
 		m.Name,
 		m.Meta,
 		m.Text,
@@ -43,7 +43,7 @@ func (r *SecretTextRepository) Update(ctx context.Context, m *model.SecretText) 
 }
 
 func (r *SecretTextRepository) Delete(ctx context.Context, m *model.SecretText) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretText WHERE id = $1 AND user_id = $2", m.ID, m.UserId); err != nil {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretText WHERE id = $1 AND user_id = $2", m.ID, m.UserID); err != nil {
 		return err
 	}
 	return nil
@@ -51,14 +51,14 @@ func (r *SecretTextRepository) Delete(ctx context.Context, m *model.SecretText) 
 
 func (r *SecretTextRepository) SearchByName(ctx context.Context, name string, id int) ([]*model.SecretText, error) {
 	mm := make([]*model.SecretText, 0)
-	sql_string := "SELECT id, name, meta, text FROM SecretText WHERE user_id=$1"
+	sqlString := "SELECT id, name, meta, text FROM SecretText WHERE user_id=$1"
 	args := []any{id}
 	if name != "" {
-		sql_string += " AND name like $2"
+		sqlString += " AND name like $2"
 		args = append(args, name)
 	}
 	rows, err := r.store.db.QueryContext(
-		ctx, sql_string, args...,
+		ctx, sqlString, args...,
 	)
 	if err != nil {
 		return nil, err
@@ -66,7 +66,7 @@ func (r *SecretTextRepository) SearchByName(ctx context.Context, name string, id
 	defer rows.Close()
 	for rows.Next() {
 		m := &model.SecretText{}
-		m.UserId = id
+		m.UserID = id
 		err = rows.Scan(&m.ID, &m.Name, &m.Meta, &m.Text)
 		if err != nil {
 			if err == sql.ErrNoRows {
@@ -84,7 +84,7 @@ func (r *SecretTextRepository) SearchByName(ctx context.Context, name string, id
 
 func (r *SecretTextRepository) GetByID(ctx context.Context, m *model.SecretText) (*model.SecretText, error) {
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT name, meta, text FROM SecretText WHERE id = $1 AND user_id = $2", m.ID, m.UserId,
+		ctx, "SELECT name, meta, text FROM SecretText WHERE id = $1 AND user_id = $2", m.ID, m.UserID,
 	).Scan(&m.Name, &m.Meta, &m.Text); err != nil {
 		return nil, err
 	}

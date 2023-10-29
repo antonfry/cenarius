@@ -86,7 +86,7 @@ func TestSecretFileRepository_GetByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.m.Name = tt.name
 			_ = s.SecretFile().Add(context.Background(), tt.m)
-			lp, err := s.SecretFile().GetByID(context.Background(), tt.m.ID, tt.m.UserId)
+			lp, err := s.SecretFile().GetByID(context.Background(), tt.m.ID, tt.m.UserID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SecretFileRepository.GetByID() error = %v, wantErr %v", err, tt.wantErr)
 			}
