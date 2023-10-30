@@ -1,21 +1,17 @@
 package agent
 
 type Config struct {
-	Host     string `json:"host"`
-	Mode     string `json:"mode"`
-	LogLevel string `json:"log_level"`
-	Secret   string `json:"secret"`
-	GZip     bool   `json:"gzip"`
-	Login    string `json:"login"`
-	Password string `json:"password"`
+	Host     string `json:"host" toml:"host,omitempty"`
+	LogLevel string `json:"log_level" toml:"log_level,omitempty"`
+	GZip     bool   `json:"gzip" toml:"gzip,omitempty"`
+	Login    string `json:"login" toml:"login,omitempty"`
+	Password string `json:"password" toml:"password,omitempty"`
 }
 
 func NewConfig() *Config {
 	return &Config{
 		Host:     "localhost:8080",
-		Mode:     "HTTP",
 		LogLevel: "INFO",
-		Secret:   "",
 		GZip:     false,
 		Login:    "AgentUser",
 		Password: "AgentPassword",
