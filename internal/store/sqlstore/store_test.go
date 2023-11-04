@@ -10,7 +10,7 @@ var (
 )
 
 func TestMain(m *testing.M) {
-	databaseURL = os.Getenv("DATABASE_URL")
+	databaseURL = os.Getenv("CENARIUS_DATABASEDSN")
 	if databaseURL == "" {
 		databaseURL = "host=localhost dbname=cenarius_test sslmode=disable"
 	}
