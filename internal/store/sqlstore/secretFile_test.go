@@ -55,7 +55,7 @@ func TestSecretFileRepository_Delete(t *testing.T) {
 	for _, tt := range sFTests {
 		t.Run(tt.name, func(t *testing.T) {
 			_ = s.SecretFile().Add(context.Background(), tt.m)
-			if err := s.SecretFile().Delete(context.Background(), tt.m); err != nil {
+			if err := s.SecretFile().Delete(context.Background(), tt.m.ID, tt.m.UserID); err != nil {
 				t.Errorf("SecretFileRepository.Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})

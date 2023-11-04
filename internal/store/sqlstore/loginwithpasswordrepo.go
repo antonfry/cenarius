@@ -46,8 +46,8 @@ func (r *LoginWithPasswordRepository) Update(ctx context.Context, m *model.Login
 	return nil
 }
 
-func (r *LoginWithPasswordRepository) Delete(ctx context.Context, m *model.LoginWithPassword) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.ID, m.UserID); err != nil {
+func (r *LoginWithPasswordRepository) Delete(ctx context.Context, id, userID int) error {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM LoginWithPassword WHERE id = $1 AND user_id=$2", id, userID); err != nil {
 		return err
 	}
 	return nil
@@ -90,9 +90,10 @@ func (r *LoginWithPasswordRepository) SearchByName(ctx context.Context, name str
 	return mm, nil
 }
 
-func (r *LoginWithPasswordRepository) GetByID(ctx context.Context, m *model.LoginWithPassword) (*model.LoginWithPassword, error) {
+func (r *LoginWithPasswordRepository) GetByID(ctx context.Context, id, userID int) (*model.LoginWithPassword, error) {
+	m := &model.LoginWithPassword{}
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT name, meta, login, password FROM LoginWithPassword WHERE id = $1 AND user_id=$2", m.ID, m.UserID,
+		ctx, "SELECT name, meta, login, password FROM LoginWithPassword WHERE id = $1 AND user_id=$2", id, userID,
 	).Scan(&m.Name, &m.Meta, &m.Login, &m.Password); err != nil {
 		return nil, err
 	}

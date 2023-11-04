@@ -60,7 +60,7 @@ func TestCreditCardRepository_Delete(t *testing.T) {
 	for _, tt := range ccTests {
 		t.Run(tt.name, func(t *testing.T) {
 			_ = s.CreditCard().Add(context.Background(), tt.m)
-			if err := s.CreditCard().Delete(context.Background(), tt.m); err != nil {
+			if err := s.CreditCard().Delete(context.Background(), tt.m.ID, tt.m.UserID); err != nil {
 				t.Errorf("CreditCardRepository.Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -91,7 +91,7 @@ func TestCreditCardRepository_GetByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.m.Name = tt.name
 			_ = s.CreditCard().Add(context.Background(), tt.m)
-			lp, err := s.CreditCard().GetByID(context.Background(), tt.m)
+			lp, err := s.CreditCard().GetByID(context.Background(), tt.m.ID, tt.m.UserID)
 			if err != nil {
 				t.Errorf("CreditCardRepository.GetByID() error = %v, wantErr %v", err, tt.wantErr)
 			}

@@ -55,7 +55,7 @@ func TestSecretTextRepository_Delete(t *testing.T) {
 	for _, tt := range stTests {
 		t.Run(tt.name, func(t *testing.T) {
 			_ = s.SecretText().Add(context.Background(), tt.m)
-			if err := s.SecretText().Delete(context.Background(), tt.m); err != nil {
+			if err := s.SecretText().Delete(context.Background(), tt.m.ID, tt.m.UserID); err != nil {
 				t.Errorf("SecretTextRepository.Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -90,7 +90,7 @@ func TestSecretTextRepository_GetByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.m.Name = tt.name
 			_ = s.SecretText().Add(context.Background(), tt.m)
-			lp, err := s.SecretText().GetByID(context.Background(), tt.m)
+			lp, err := s.SecretText().GetByID(context.Background(), tt.m.ID, tt.m.UserID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("SecretTextRepository.GetByID() error = %v, wantErr %v", err, tt.wantErr)
 			}

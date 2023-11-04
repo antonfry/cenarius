@@ -72,7 +72,7 @@ func TestLoginWithPasswordRepository_Delete(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			_ = s.LoginWithPassword().Add(context.Background(), tt.m)
-			if err := s.LoginWithPassword().Delete(context.Background(), tt.m); (err != nil) != tt.wantErr {
+			if err := s.LoginWithPassword().Delete(context.Background(), tt.m.ID, tt.m.UserID); (err != nil) != tt.wantErr {
 				t.Errorf("LoginWithPasswordRepository.Delete() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
@@ -125,7 +125,7 @@ func TestLoginWithPasswordRepository_GetByID(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			tt.m.Name = tt.name
 			_ = s.LoginWithPassword().Add(context.Background(), tt.m)
-			lp, err := s.LoginWithPassword().GetByID(context.Background(), tt.m)
+			lp, err := s.LoginWithPassword().GetByID(context.Background(), tt.m.ID, tt.m.UserID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("LoginWithPasswordRepository.GetByID() error = %v, wantErr %v", err, tt.wantErr)
 			}

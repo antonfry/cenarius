@@ -128,32 +128,32 @@ func (s *server) handleLoginWithPasswordWithBody() http.HandlerFunc {
 
 func (s *server) handleLoginWithPasswordWithID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := &model.LoginWithPassword{}
 		var err error
 		user, ok := r.Context().Value(ctxKeyUser).(*model.User)
 		if !ok {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 			return
 		}
-		m.UserID = user.ID
-		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		switch r.Method {
 		case "GET":
-			if _, err := s.getLoginWithPassword(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
+			m := &model.LoginWithPassword{}
+			if m, err = s.getLoginWithPassword(r.Context(), id, user.ID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
+			s.respond(w, r, http.StatusOK, m)
 		case "DELETE":
-			if err := s.deleteLoginWithPassword(r.Context(), m); err != nil {
+			if err := s.deleteLoginWithPassword(r.Context(), id, user.ID); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
+			s.respond(w, r, http.StatusOK, nil)
 		}
-		s.respond(w, r, http.StatusOK, m)
 	}
 }
 
@@ -208,31 +208,33 @@ func (s *server) handleCreditCardWithBody() http.HandlerFunc {
 
 func (s *server) handleCreditCardWithID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := &model.CreditCard{}
+
 		var err error
 		user, ok := r.Context().Value(ctxKeyUser).(*model.User)
 		if !ok {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 		}
-		m.UserID = user.ID
-		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		switch r.Method {
 		case "GET":
-			if _, err := s.getCreditCard(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
+			m := &model.CreditCard{}
+			if m, err = s.getCreditCard(r.Context(), id, user.ID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
+			s.respond(w, r, http.StatusOK, m)
 		case "DELETE":
-			if err := s.deleteCreditCard(r.Context(), m); err != nil {
+			if err := s.deleteCreditCard(r.Context(), id, user.ID); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
+			s.respond(w, r, http.StatusOK, nil)
 		}
-		s.respond(w, r, http.StatusOK, m)
+
 	}
 }
 
@@ -284,32 +286,34 @@ func (s *server) handleSecretTextWithBody() http.HandlerFunc {
 
 func (s *server) handleSecretTextWithID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := &model.SecretText{}
+
 		var err error
 		user, ok := r.Context().Value(ctxKeyUser).(*model.User)
 		if !ok {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 			return
 		}
-		m.UserID = user.ID
-		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
+
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		switch r.Method {
 		case "GET":
-			if _, err := s.getSecretText(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
+			m := &model.SecretText{}
+			if m, err = s.getSecretText(r.Context(), id, user.ID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
+			s.respond(w, r, http.StatusOK, m)
 		case "DELETE":
-			if err := s.deleteSecretText(r.Context(), m); err != nil {
+			if err := s.deleteSecretText(r.Context(), id, user.ID); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
+			s.respond(w, r, http.StatusOK, nil)
 		}
-		s.respond(w, r, http.StatusOK, m)
 	}
 }
 
@@ -410,32 +414,31 @@ func (s *server) handleSecretFileWithBody() http.HandlerFunc {
 
 func (s *server) handleSecretFileWithID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		m := &model.SecretFile{}
 		var err error
 		user, ok := r.Context().Value(ctxKeyUser).(*model.User)
 		if !ok {
 			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
 			return
 		}
-		m.UserID = user.ID
-		m.ID, err = strconv.Atoi(chi.URLParam(r, "id"))
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
 		if err != nil {
 			s.error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		switch r.Method {
 		case "GET":
-			if m, err = s.getSecretFile(r.Context(), m.ID, m.UserID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
+			m := &model.SecretFile{}
+			if m, err = s.getSecretFile(r.Context(), id, user.ID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
 			http.ServeFile(w, r, m.Path)
 		case "DELETE":
-			if err := s.deleteSecretFile(r.Context(), m); err != nil {
+			if err := s.deleteSecretFile(r.Context(), id, user.ID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
 			}
-			s.respond(w, r, http.StatusOK, m)
+			s.respond(w, r, http.StatusOK, nil)
 		}
 	}
 }

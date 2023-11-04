@@ -5,7 +5,6 @@ type Store interface {
 	CreditCard() CreditCardRepository
 	SecretText() SecretTextRepository
 	SecretFile() SecretFileRepository
-	// SecretData() SecretDataRepository
 	User() UserRepository
 	Close()
 }

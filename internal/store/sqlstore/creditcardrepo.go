@@ -48,8 +48,8 @@ func (r *CreditCardRepository) Update(ctx context.Context, m *model.CreditCard) 
 	return nil
 }
 
-func (r *CreditCardRepository) Delete(ctx context.Context, m *model.CreditCard) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM CreditCard WHERE id = $1 AND user_id = $2", m.ID, m.UserID); err != nil {
+func (r *CreditCardRepository) Delete(ctx context.Context, id, userID int) error {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM CreditCard WHERE id = $1 AND user_id = $2", id, userID); err != nil {
 		return err
 	}
 	return nil
@@ -88,9 +88,10 @@ func (r *CreditCardRepository) SearchByName(ctx context.Context, name string, id
 	return mm, nil
 }
 
-func (r *CreditCardRepository) GetByID(ctx context.Context, m *model.CreditCard) (*model.CreditCard, error) {
+func (r *CreditCardRepository) GetByID(ctx context.Context, id, userID int) (*model.CreditCard, error) {
+	m := &model.CreditCard{}
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT name, meta, owner_name, owner_last_name, number, cvc FROM CreditCard WHERE id = $1 AND user_id = $2", m.ID, m.UserID,
+		ctx, "SELECT name, meta, owner_name, owner_last_name, number, cvc FROM CreditCard WHERE id = $1 AND user_id = $2", id, userID,
 	).Scan(&m.Name, &m.Meta, &m.OwnerName, &m.OwnerLastName, &m.Number, &m.CVC); err != nil {
 		return nil, err
 	}

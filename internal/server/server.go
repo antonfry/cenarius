@@ -7,6 +7,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/go-chi/chi"
@@ -254,36 +255,46 @@ func (s *server) updateSecretFile(ctx context.Context, m *model.SecretFile, key,
 	return m, nil
 }
 
-func (s *server) deleteLoginWithPassword(ctx context.Context, m *model.LoginWithPassword) error {
-	if err := s.store.LoginWithPassword().Delete(ctx, m); err != nil {
+func (s *server) deleteLoginWithPassword(ctx context.Context, id, userID int) error {
+	if err := s.store.LoginWithPassword().Delete(ctx, id, userID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *server) deleteCreditCard(ctx context.Context, m *model.CreditCard) error {
-	if err := s.store.CreditCard().Delete(ctx, m); err != nil {
+func (s *server) deleteCreditCard(ctx context.Context, id, userID int) error {
+	if err := s.store.CreditCard().Delete(ctx, id, userID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *server) deleteSecretText(ctx context.Context, m *model.SecretText) error {
-	if err := s.store.SecretText().Delete(ctx, m); err != nil {
+func (s *server) deleteSecretText(ctx context.Context, id, userID int) error {
+	if err := s.store.SecretText().Delete(ctx, id, userID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *server) deleteSecretFile(ctx context.Context, m *model.SecretFile) error {
-	if err := s.store.SecretFile().Delete(ctx, m); err != nil {
+func (s *server) deleteSecretFile(ctx context.Context, id, userID int, key, iv string) error {
+	m, err := s.store.SecretFile().GetByID(ctx, id, userID)
+	if err != nil {
+		return err
+	}
+	if err := m.Decrypt(key, iv); err != nil {
+		return err
+	}
+	if err := s.store.SecretFile().Delete(ctx, id, userID); err != nil {
+		return err
+	}
+	if err := os.Remove(m.Path); err != nil {
 		return err
 	}
 	return nil
 }
 
-func (s *server) getLoginWithPassword(ctx context.Context, m *model.LoginWithPassword, key, iv string) (*model.LoginWithPassword, error) {
-	m, err := s.store.LoginWithPassword().GetByID(ctx, m)
+func (s *server) getLoginWithPassword(ctx context.Context, id, userID int, key, iv string) (*model.LoginWithPassword, error) {
+	m, err := s.store.LoginWithPassword().GetByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -293,8 +304,8 @@ func (s *server) getLoginWithPassword(ctx context.Context, m *model.LoginWithPas
 	return m, nil
 }
 
-func (s *server) getCreditCard(ctx context.Context, m *model.CreditCard, key, iv string) (*model.CreditCard, error) {
-	m, err := s.store.CreditCard().GetByID(ctx, m)
+func (s *server) getCreditCard(ctx context.Context, id, userID int, key, iv string) (*model.CreditCard, error) {
+	m, err := s.store.CreditCard().GetByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -304,8 +315,8 @@ func (s *server) getCreditCard(ctx context.Context, m *model.CreditCard, key, iv
 	return m, nil
 }
 
-func (s *server) getSecretText(ctx context.Context, m *model.SecretText, key, iv string) (*model.SecretText, error) {
-	m, err := s.store.SecretText().GetByID(ctx, m)
+func (s *server) getSecretText(ctx context.Context, id, userID int, key, iv string) (*model.SecretText, error) {
+	m, err := s.store.SecretText().GetByID(ctx, id, userID)
 	if err != nil {
 		return nil, err
 	}

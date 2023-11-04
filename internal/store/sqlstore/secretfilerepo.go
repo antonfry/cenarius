@@ -41,8 +41,8 @@ func (r *SecretFileRepository) Update(ctx context.Context, m *model.SecretFile) 
 	return nil
 }
 
-func (r *SecretFileRepository) Delete(ctx context.Context, m *model.SecretFile) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretFile WHERE id = $1 AND user_id = $2", m.ID, m.UserID); err != nil {
+func (r *SecretFileRepository) Delete(ctx context.Context, id, userID int) error {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretFile WHERE id = $1 AND user_id = $2", id, userID); err != nil {
 		return err
 	}
 	return nil

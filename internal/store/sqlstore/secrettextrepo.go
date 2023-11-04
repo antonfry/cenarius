@@ -42,8 +42,8 @@ func (r *SecretTextRepository) Update(ctx context.Context, m *model.SecretText) 
 	return nil
 }
 
-func (r *SecretTextRepository) Delete(ctx context.Context, m *model.SecretText) error {
-	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretText WHERE id = $1 AND user_id = $2", m.ID, m.UserID); err != nil {
+func (r *SecretTextRepository) Delete(ctx context.Context, id, userID int) error {
+	if _, err := r.store.db.ExecContext(ctx, "DELETE FROM SecretText WHERE id = $1 AND user_id = $2", id, userID); err != nil {
 		return err
 	}
 	return nil
@@ -82,9 +82,10 @@ func (r *SecretTextRepository) SearchByName(ctx context.Context, name string, id
 	return mm, nil
 }
 
-func (r *SecretTextRepository) GetByID(ctx context.Context, m *model.SecretText) (*model.SecretText, error) {
+func (r *SecretTextRepository) GetByID(ctx context.Context, id, userID int) (*model.SecretText, error) {
+	m := &model.SecretText{}
 	if err := r.store.db.QueryRowContext(
-		ctx, "SELECT name, meta, text FROM SecretText WHERE id = $1 AND user_id = $2", m.ID, m.UserID,
+		ctx, "SELECT name, meta, text FROM SecretText WHERE id = $1 AND user_id = $2", id, userID,
 	).Scan(&m.Name, &m.Meta, &m.Text); err != nil {
 		return nil, err
 	}
