@@ -9,6 +9,7 @@ jobs:
       postgres:
         image: postgres
         env:
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_PASSWORD: ""
           POSTGRES_DB: cenarius_test
         options: >-
