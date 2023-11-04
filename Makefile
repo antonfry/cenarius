@@ -20,6 +20,6 @@ build_macos:
 
 .PHONY: test
 test:
-	go test -v -race -timeout 30s -v -covermode=atomic ./...
+	CENARIUS_DATABASEDSN="" go test -v -race -timeout 30s -v -covermode=atomic ./...
 
 .DEFAULT_GOAL := build

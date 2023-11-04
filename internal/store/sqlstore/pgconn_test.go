@@ -1,6 +1,7 @@
 package sqlstore
 
 import (
+	"os"
 	"testing"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
@@ -15,7 +16,7 @@ func TestNewPGConn(t *testing.T) {
 	}{
 		{
 			name:        "Valid",
-			databaseDsn: "",
+			databaseDsn: os.Getenv("CENARIUS_DATABASEDSN"),
 			wantErr:     false,
 		},
 		{
