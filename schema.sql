@@ -1,10 +1,10 @@
-CREATE TABLE users(
+CREATE TABLE IF NOT EXISTS users(
     "id" bigserial not null primary key,
     "login" varchar not null unique,
     "encrypted_password" varchar not null
 );
 
-CREATE TABLE LoginWithPassword(
+CREATE TABLE IF NOT EXISTS LoginWithPassword(
     "id" bigserial not null primary key,
     "user_id" int,
     "name" varchar,
@@ -14,7 +14,7 @@ CREATE TABLE LoginWithPassword(
     "created_at" timestamp default NOW()
 );
 
-CREATE TABLE CreditCard(
+CREATE TABLE IF NOT EXISTS CreditCard(
     "id" bigserial not null primary key,
     "user_id" int,
     "name" varchar,
@@ -26,7 +26,7 @@ CREATE TABLE CreditCard(
     "created_at" timestamp default NOW()
 );
 
-CREATE TABLE SecretText(
+CREATE TABLE IF NOT EXISTS SecretText(
     "id" bigserial not null primary key,
     "user_id" int,
     "name" varchar,
@@ -35,7 +35,7 @@ CREATE TABLE SecretText(
     "created_at" timestamp default NOW()
 );
 
-CREATE TABLE SecretFile(
+CREATE TABLE IF NOT EXISTS SecretFile(
     "id" bigserial not null primary key,
     "user_id" int,
     "name" varchar,

@@ -4,6 +4,7 @@ import (
 	"cenarius/internal/model"
 	"cenarius/internal/store"
 	"context"
+	"fmt"
 )
 
 type CreditCardRepository struct {
@@ -34,6 +35,12 @@ func (r *CreditCardRepository) GetByID(ctx context.Context, id, userID int) (*mo
 }
 
 func (r *CreditCardRepository) Add(ctx context.Context, m *model.CreditCard) error {
+	fmt.Print("ATATATA")
+	fmt.Print(r.m)
+	_, ok := r.m[m.UserID]
+	if !ok {
+		r.m[m.UserID] = nil
+	}
 	r.m[m.UserID][m.ID] = m
 	return nil
 }
