@@ -427,7 +427,7 @@ func (s *server) handleSecretFileWithID() http.HandlerFunc {
 		}
 		switch r.Method {
 		case "GET":
-			m := &model.SecretFile{}
+			var m *model.SecretFile
 			if m, err = s.getSecretFile(r.Context(), id, user.ID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
