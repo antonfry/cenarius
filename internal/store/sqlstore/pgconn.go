@@ -61,12 +61,10 @@ func NewPGConn(databaseDsn string) (*sql.DB, error) {
 	if err := conn.Ping(); err != nil {
 		return nil, err
 	}
-	log.Info("Migrating")
 	if err := migrateSQL(conn); err != nil {
 		log.Error("Migration Fail: ", err.Error())
 		return nil, err
 	}
-	log.Info("Migration done")
 	return conn, nil
 }
 
