@@ -1,6 +1,6 @@
 name: Test and coverage
 
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build:
@@ -9,7 +9,7 @@ jobs:
       postgres:
         image: postgres
         env:
-          POSTGRES_PASSWORD: "postgres"
+          POSTGRES_PASSWORD: postgres
           POSTGRES_DB: cenarius_test
         options: >-
           --health-cmd pg_isready

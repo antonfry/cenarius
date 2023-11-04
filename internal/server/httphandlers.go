@@ -141,7 +141,7 @@ func (s *server) handleLoginWithPasswordWithID() http.HandlerFunc {
 		}
 		switch r.Method {
 		case "GET":
-			m := &model.LoginWithPassword{}
+			var m *model.LoginWithPassword
 			if m, err = s.getLoginWithPassword(r.Context(), id, user.ID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
@@ -221,7 +221,7 @@ func (s *server) handleCreditCardWithID() http.HandlerFunc {
 		}
 		switch r.Method {
 		case "GET":
-			m := &model.CreditCard{}
+			var m *model.CreditCard
 			if m, err = s.getCreditCard(r.Context(), id, user.ID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
@@ -301,7 +301,7 @@ func (s *server) handleSecretTextWithID() http.HandlerFunc {
 		}
 		switch r.Method {
 		case "GET":
-			m := &model.SecretText{}
+			var m *model.SecretText
 			if m, err = s.getSecretText(r.Context(), id, user.ID, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
 				s.error(w, r, http.StatusInternalServerError, err)
 				return
