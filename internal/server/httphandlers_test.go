@@ -7,7 +7,6 @@ import (
 	"context"
 	"encoding/json"
 	"io"
-	"log"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
@@ -28,7 +27,6 @@ func TestMain(m *testing.M) {
 	if databaseURL == "" {
 		databaseURL = "host=localhost dbname=cenarius_test sslmode=disable"
 	}
-	log.Println("ATATATATATA", databaseURL, "ATATATATATA")
 	os.Exit(m.Run())
 }
 
