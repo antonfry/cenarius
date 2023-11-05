@@ -72,8 +72,7 @@ func Test_server_handleUserRegister(t *testing.T) {
 				t.Errorf("http.NewRequest error = %v", err)
 			}
 			handler.ServeHTTP(rec, req)
-			assert.Equal(t, tt.want, rec.Result().StatusCode)
-			req.Body.Close()
+			assert.Equal(t, tt.want, rec.Code)
 		})
 	}
 }
@@ -89,7 +88,7 @@ func Test_server_handleHealthCheck(t *testing.T) {
 		t.Error(err)
 	}
 	handler.ServeHTTP(rec, req)
-	assert.Equal(t, http.StatusNoContent, rec.Result().StatusCode)
+	assert.Equal(t, http.StatusNoContent, rec.Code)
 }
 
 func Test_server_handleLoginWithPasswordWithBody(t *testing.T) {
@@ -154,7 +153,7 @@ func Test_server_handleLoginWithPasswordWithBody(t *testing.T) {
 				t.Error(err)
 			}
 			handler.ServeHTTP(rec, req.WithContext(tt.ctx))
-			assert.Equal(t, tt.want, rec.Result().StatusCode)
+			assert.Equal(t, tt.want, rec.Code)
 			req.Body.Close()
 		})
 	}
