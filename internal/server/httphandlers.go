@@ -107,7 +107,7 @@ func (s *server) handleLoginWithPasswordWithBody() http.HandlerFunc {
 		}
 		user, ok := r.Context().Value(ctxKeyUser).(*model.User)
 		if !ok {
-			s.error(w, r, http.StatusInternalServerError, ErrUnableToGetUserFromRequest)
+			s.error(w, r, http.StatusBadRequest, ErrUnableToGetUserFromRequest)
 			return
 		}
 		fmt.Println(user)
@@ -115,6 +115,7 @@ func (s *server) handleLoginWithPasswordWithBody() http.HandlerFunc {
 		switch r.Method {
 		case "POST":
 			if _, err := s.addLoginWithPassword(r.Context(), m, user.EncryptedPassword[0:32], user.EncryptedPassword[0:16]); err != nil {
+				s.logger.Error(err)
 				s.error(w, r, http.StatusInternalServerError, err)
 			}
 		case "PUT":
