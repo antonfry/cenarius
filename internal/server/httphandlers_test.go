@@ -80,6 +80,7 @@ func Test_server_handleUserRegister(t *testing.T) {
 
 func Test_server_handleHealthCheck(t *testing.T) {
 	conf := NewConfig()
+	conf.DatabaseDsn = databaseURL
 	s := NewServer(conf)
 	handler := http.HandlerFunc(s.handleHealthCheck())
 	rec := httptest.NewRecorder()
@@ -93,6 +94,7 @@ func Test_server_handleHealthCheck(t *testing.T) {
 
 func Test_server_handleLoginWithPasswordWithBody(t *testing.T) {
 	conf := NewConfig()
+	conf.DatabaseDsn = databaseURL
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	u := &model.User{Login: "Valid", EncryptedPassword: "testpasswordtestpasswordtestpass", ID: r.Intn(1000-10) + 1}
 	s := NewServer(conf)
