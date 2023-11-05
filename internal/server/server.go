@@ -111,7 +111,7 @@ func (s *server) userRegister(ctx context.Context, u *model.User) (*model.User, 
 		s.logger.Errorf("Failed to create user %v: %v", u, err)
 		return nil, http.StatusBadRequest, err
 	}
-	s.logger.Infof("User created: %v", u)
+	s.logger.Debugf("User created: %v", u)
 	return u, http.StatusAccepted, nil
 }
 
@@ -202,7 +202,7 @@ func (s *server) updateLoginWithPassword(ctx context.Context, m *model.LoginWith
 		s.logger.Errorf("Failed to add LoginWithPassword %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("LoginWithPassword updated: %v", m)
+	s.logger.Debugf("LoginWithPassword updated: %v", m)
 	return m, nil
 }
 
@@ -217,7 +217,7 @@ func (s *server) updateCreditCard(ctx context.Context, m *model.CreditCard, key,
 		s.logger.Errorf("Failed to add CreditCard %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("CreditCard updated: %v", m)
+	s.logger.Debugf("CreditCard updated: %v", m)
 	return m, nil
 }
 
@@ -232,7 +232,7 @@ func (s *server) updateSecretText(ctx context.Context, m *model.SecretText, key,
 		s.logger.Errorf("Failed to add SecretText %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("SecretText updated: %v", m)
+	s.logger.Debugf("SecretText updated: %v", m)
 	return m, nil
 }
 
@@ -251,7 +251,7 @@ func (s *server) updateSecretFile(ctx context.Context, m *model.SecretFile, key,
 		s.logger.Errorf("Failed to add SecretFile %v: %v", m, err)
 		return nil, err
 	}
-	s.logger.Infof("SecretFile updated: %v", m)
+	s.logger.Debugf("SecretFile updated: %v", m)
 	return m, nil
 }
 

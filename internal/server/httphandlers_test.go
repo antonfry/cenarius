@@ -9,10 +9,23 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
+
+var (
+	databaseURL string
+)
+
+func TestMain(m *testing.M) {
+	databaseURL = os.Getenv("CENARIUS_DATABASEDSN")
+	if databaseURL == "" {
+		databaseURL = "host=localhost dbname=cenarius_test sslmode=disable"
+	}
+	os.Exit(m.Run())
+}
 
 func Test_server_handleUserRegister(t *testing.T) {
 	_, teardown := sqlstore.TestStore(t, databaseURL)
@@ -53,6 +66,7 @@ func Test_server_handleUserRegister(t *testing.T) {
 			if err != nil {
 				t.Errorf("http.NewRequest error = %v", err)
 			}
+			defer req.Body.Close()
 			handler.ServeHTTP(rec, req)
 			assert.Equal(t, tt.want, rec.Result().StatusCode)
 		})
@@ -131,6 +145,7 @@ func Test_server_handleLoginWithPasswordWithBody(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
+			defer req.Body.Close()
 			handler.ServeHTTP(rec, req.WithContext(tt.ctx))
 			assert.Equal(t, tt.want, rec.Result().StatusCode)
 		})
