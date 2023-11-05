@@ -71,9 +71,9 @@ func Test_server_handleUserRegister(t *testing.T) {
 			if err != nil {
 				t.Errorf("http.NewRequest error = %v", err)
 			}
-			defer req.Body.Close()
 			handler.ServeHTTP(rec, req)
 			assert.Equal(t, tt.want, rec.Result().StatusCode)
+			req.Body.Close()
 		})
 	}
 }
@@ -151,9 +151,9 @@ func Test_server_handleLoginWithPasswordWithBody(t *testing.T) {
 			if err != nil {
 				t.Error(err)
 			}
-			defer req.Body.Close()
 			handler.ServeHTTP(rec, req.WithContext(tt.ctx))
 			assert.Equal(t, tt.want, rec.Result().StatusCode)
+			req.Body.Close()
 		})
 	}
 }

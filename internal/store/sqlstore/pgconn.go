@@ -7,7 +7,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-const schemaSQL = `CREATE TABLE IF NOT EXISTS users(
+const schemaSQL = `
+begin;
+select pg_advisory_xact_lock(12345);
+CREATE TABLE IF NOT EXISTS users(
     "id" bigserial not null primary key,
     "login" varchar not null unique,
     "encrypted_password" varchar not null
@@ -51,7 +54,8 @@ CREATE TABLE IF NOT EXISTS SecretFile(
     "meta" text,
     "path" varchar,
     "created_at" timestamp default NOW()
-);`
+);
+commit;`
 
 func NewPGConn(databaseDsn string) (*sql.DB, error) {
 	conn, err := sql.Open("pgx", databaseDsn)
