@@ -7,10 +7,12 @@ import (
 	"context"
 	"encoding/json"
 	"io"
+	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
@@ -88,7 +90,8 @@ func Test_server_handleHealthCheck(t *testing.T) {
 
 func Test_server_handleLoginWithPasswordWithBody(t *testing.T) {
 	conf := NewConfig()
-	u := &model.User{Login: "Valid", EncryptedPassword: "testpasswordtestpasswordtestpass", ID: 1}
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	u := &model.User{Login: "Valid", EncryptedPassword: "testpasswordtestpasswordtestpass", ID: r.Intn(1000-10) + 1}
 	s := NewServer(conf)
 	handler := http.HandlerFunc(s.handleLoginWithPasswordWithBody())
 	tests := []struct {
