@@ -15,8 +15,7 @@ import (
 )
 
 func Test_server_handleUserRegister(t *testing.T) {
-	databaseDSN := "host=localhost dbname=cenarius_test sslmode=disable"
-	_, teardown := sqlstore.TestStore(t, databaseDSN)
+	_, teardown := sqlstore.TestStore(t, databaseURL)
 	defer teardown("users")
 	tests := []struct {
 		name string
@@ -40,7 +39,7 @@ func Test_server_handleUserRegister(t *testing.T) {
 		},
 	}
 	conf := NewConfig()
-	conf.DatabaseDsn = databaseDSN
+	conf.DatabaseDsn = databaseURL
 	s := NewServer(conf)
 	handler := http.HandlerFunc(s.handleUserRegister())
 
