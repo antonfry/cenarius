@@ -33,20 +33,7 @@ var (
 	buildDate    string
 	buildCommit  string
 	flagsData    flags
-	worker       cenariusWorker
 )
-
-func init() {
-	flag.StringVar(&flagsData.mode, "m", "", "server or agent")
-	flag.StringVar(&flagsData.conf, "conf", "conf/conf.toml", "path to toml conf")
-	flag.StringVar(&flagsData.logLevel, "logLevel", "", "LogLevel")
-	flag.StringVar(&flagsData.host, "host", "", "Server address")
-	flag.StringVar(&flagsData.databaseDSN, "databaseDSN", "", "Database DNS for server")
-	flag.StringVar(&flagsData.secretFilePath, "secretFilePath", "", "Storage path for secret files")
-	flag.StringVar(&flagsData.login, "login", "", "Login for agent")
-	flag.StringVar(&flagsData.login, "password", "", "Password for agent")
-	flag.Parse()
-}
 
 func getServerConfig(conf *server.Config) *server.Config {
 	_, err := toml.DecodeFile(flagsData.conf, conf)
@@ -138,9 +125,18 @@ func getAgentEnv(conf *agent.Config) *agent.Config {
 }
 
 func main() {
+	flag.StringVar(&flagsData.mode, "m", "", "server or agent")
+	flag.StringVar(&flagsData.conf, "conf", "conf/conf.toml", "path to toml conf")
+	flag.StringVar(&flagsData.logLevel, "logLevel", "", "LogLevel")
+	flag.StringVar(&flagsData.host, "host", "", "Server address")
+	flag.StringVar(&flagsData.databaseDSN, "databaseDSN", "", "Database DNS for server")
+	flag.StringVar(&flagsData.secretFilePath, "secretFilePath", "", "Storage path for secret files")
+	flag.StringVar(&flagsData.login, "login", "", "Login for agent")
+	flag.StringVar(&flagsData.login, "password", "", "Password for agent")
+	flag.Parse()
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, os.Interrupt)
-
+	var worker cenariusWorker
 	switch flagsData.mode {
 	case "server":
 		conf := getServerConfig(server.NewConfig())
@@ -172,6 +168,7 @@ func main() {
 	log.Infof("Build date: %v", buildDate)
 	log.Infof("Build commit: %v", buildCommit)
 	if err := worker.Start(); err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		worker.Shutdown()
 	}
 }

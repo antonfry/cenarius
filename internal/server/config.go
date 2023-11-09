@@ -12,7 +12,7 @@ func NewConfig() *Config {
 	return &Config{
 		Bind:           ":8080",
 		LogLevel:       "INFO",
-		DatabaseDsn:    "postgres://postgres:5432/cenarius_test?sslmode=disable",
+		DatabaseDsn:    "postgres://localhost:5432/cenarius_test?sslmode=disable",
 		SessionKey:     "cenarius",
 		SecretFilePath: "/tmp/cenarius",
 	}

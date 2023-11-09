@@ -2,6 +2,7 @@ package sqlstore
 
 import (
 	"database/sql"
+	"fmt"
 
 	_ "github.com/jackc/pgx/v5/stdlib"
 	log "github.com/sirupsen/logrus"
@@ -69,6 +70,7 @@ func NewPGConn(databaseDsn string) (*sql.DB, error) {
 		log.Error("Migration Fail: ", err.Error())
 		return nil, err
 	}
+	fmt.Println("NegPGCon")
 	return conn, nil
 }
 

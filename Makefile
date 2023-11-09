@@ -20,6 +20,14 @@ build_macos:
 
 .PHONY: test
 test:
-	CENARIUS_DATABASEDSN="" go test -v -race -timeout 30s -v -covermode=atomic ./...
+	CENARIUS_DATABASEDSN=""  go test -v -race -timeout 30s -v -covermode=atomic ./...
+	
+.PHONY: compose
+compose:build_linux
+	docker-compose up -d
+
+.PHONY: decompose
+decompose:
+	docker-compose down
 
 .DEFAULT_GOAL := build

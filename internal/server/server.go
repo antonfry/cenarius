@@ -5,6 +5,7 @@ import (
 	"cenarius/internal/store"
 	"cenarius/internal/store/sqlstore"
 	"context"
+	"database/sql"
 	"errors"
 	"net/http"
 	"os"
@@ -43,20 +44,23 @@ func NewServer(config *Config) *server {
 	if err := s.configureLogger(); err != nil {
 		log.Fatalf("Can't configure logger: %s", err.Error())
 	}
-	s.configureStore()
+	if err := s.configureStore(); err != nil {
+		log.Fatalf("Can't configure store: %s", err.Error())
+	}
 
 	return s
 }
 
 // StartHTTPServer starts GRPC Server
-func (s *server) StartHTTPServer() {
+func (s *server) StartHTTPServer() error {
 	s.logger.Infof("Starting HTTP server with config: %v\n", s.config)
 	s.router = chi.NewRouter()
 	s.configureRouter()
 	if err := s.HTTPServer.ListenAndServe(); err != http.ErrServerClosed {
-		s.logger.Fatal(err)
+		return err
 	}
 	s.logger.Infof("HTTP server stopped with config: %v\n", s.config)
+	return nil
 }
 
 func (s *server) StopHTTPServer() {
@@ -70,7 +74,10 @@ func (s *server) StopHTTPServer() {
 
 // Start starts the server
 func (s *server) Start() error {
-	s.StartHTTPServer()
+	err := s.StartHTTPServer()
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -93,13 +100,26 @@ func (s *server) configureLogger() error {
 }
 
 // configureStore configures store
-func (s *server) configureStore() {
-	conn, err := sqlstore.NewPGConn(s.config.DatabaseDsn)
-	if err != nil {
-		s.logger.Errorf("Unable to connect to the database with: %v", s.config.DatabaseDsn)
-		s.logger.Fatal(err)
+func (s *server) configureStore() error {
+	var conn *sql.DB
+	var err error
+	for i := 1; i <= 10; i++ {
+		conn, err = sqlstore.NewPGConn(s.config.DatabaseDsn)
+		if i > 10 {
+			return err
+		}
+		if err != nil && i <= 10 {
+			s.logger.Errorf("Unable to connect to the database with: %v", s.config.DatabaseDsn)
+			s.logger.Error(err)
+			time.Sleep(time.Second * 2)
+			continue
+		} else {
+			break
+		}
+
 	}
 	s.store = sqlstore.NewStore(conn)
+	return nil
 }
 
 func (s *server) userRegister(ctx context.Context, u *model.User) (*model.User, int, error) {

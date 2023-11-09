@@ -7,6 +7,7 @@ import (
 	"cenarius/internal/userinput"
 	"compress/gzip"
 	"context"
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -29,8 +30,11 @@ type agent struct {
 
 // NewServer returns new server object
 func NewAgent(config *Config) *agent {
+	tr := &http.Transport{
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 	a := &agent{
-		client: http.Client{},
+		client: http.Client{Transport: tr},
 		config: config,
 		logger: logrus.New(),
 	}
@@ -111,7 +115,7 @@ func (a *agent) getRequest(ctx context.Context, method string, endpoint string, 
 }
 
 func (a *agent) geHTTPtURL(path string) string {
-	return fmt.Sprintf("http://%v/%s", a.config.Host, path)
+	return fmt.Sprintf("https://%v/%s", a.config.Host, path)
 }
 
 // sendRequest send http request
