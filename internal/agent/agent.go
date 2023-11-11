@@ -2,6 +2,8 @@ package agent
 
 import (
 	"bytes"
+	"cenarius/internal/cache"
+	"cenarius/internal/cache/filecache"
 	"cenarius/internal/model"
 	"cenarius/internal/server"
 	"cenarius/internal/userinput"
@@ -12,7 +14,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"mime/multipart"
 	"net/http"
 	"os"
@@ -26,6 +27,7 @@ type agent struct {
 	client http.Client
 	config *Config
 	logger *logrus.Logger
+	store  cache.StoreCache
 }
 
 // NewServer returns new server object
@@ -38,6 +40,12 @@ func NewAgent(config *Config) *agent {
 		config: config,
 		logger: logrus.New(),
 	}
+	f, err := os.OpenFile(a.config.CacheFile, os.O_RDWR|os.O_CREATE, 0640)
+	if err != nil {
+		a.logger.Errorf("openFile: Failed to open file %v", a.config.CacheFile)
+		return nil
+	}
+	a.store = filecache.New(f)
 	return a
 }
 
@@ -45,7 +53,7 @@ func NewAgent(config *Config) *agent {
 func (a *agent) Start() error {
 	ctx := context.Background()
 	if err := a.configureLogger(); err != nil {
-		log.Fatal(err)
+		return err
 	}
 	a.ping(ctx)
 	a.userInput()
@@ -54,7 +62,7 @@ func (a *agent) Start() error {
 
 // Stop stops the agent
 func (a *agent) Shutdown() {
-
+	a.store.Cache().Close()
 }
 
 // configureLogger configures logger
@@ -256,17 +264,17 @@ func (a *agent) getSecretFile(ctx context.Context, id string) {
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		log.Fatalf("bad status: %s", resp.Status)
+		a.logger.Fatalf("bad status: %s", resp.Status)
 	}
 	out, err := os.Create("SecretFile_" + id)
 	if err != nil {
-		log.Fatalf("Can't create local file: %s", err.Error())
+		a.logger.Fatalf("Can't create local file: %s", err.Error())
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		log.Fatalf("Can't copy reposnse to local file: %s", err.Error())
+		a.logger.Fatalf("Can't copy reposnse to local file: %s", err.Error())
 	}
 }
 
@@ -329,7 +337,7 @@ func (a *agent) list(ctx context.Context, target string) {
 	case "f", "file", "secretfile":
 		a.listSecretFile(ctx)
 	default:
-		log.Fatalf("Unknown target: %s", target)
+		a.logger.Fatalf("Unknown target: %s", target)
 	}
 }
 
@@ -346,7 +354,7 @@ func (a *agent) get(ctx context.Context, target string) {
 		id := userinput.InputID()
 		a.getSecretFile(ctx, strconv.Itoa(id))
 	default:
-		log.Fatalf("Unknown target: %s", target)
+		a.logger.Fatalf("Unknown target: %s", target)
 	}
 }
 
@@ -365,7 +373,7 @@ func (a *agent) add(ctx context.Context, target string) {
 		m := userinput.InputSecretFile(true)
 		a.uploadSecretFile(ctx, m)
 	default:
-		log.Fatalf("Unknown target: %s", target)
+		a.logger.Fatalf("Unknown target: %s", target)
 	}
 }
 
@@ -388,7 +396,7 @@ func (a *agent) delete(ctx context.Context, target string) {
 		id := userinput.InputID()
 		a.deleteSecretFile(ctx, id)
 	default:
-		log.Fatalf("Unknown target: %s", target)
+		a.logger.Fatalf("Unknown target: %s", target)
 	}
 }
 
@@ -419,7 +427,7 @@ func (a *agent) update(ctx context.Context, target string) {
 		m.ID = id
 		a.updateSecretFile(ctx, m)
 	default:
-		log.Fatalf("Unknown target: %s", target)
+		a.logger.Fatalf("Unknown target: %s", target)
 	}
 }
 
@@ -444,7 +452,7 @@ func (a *agent) userInput() {
 	case "update", "u":
 		a.update(ctx, target)
 	default:
-		log.Fatalf("Unknown action: %s", action)
+		a.logger.Fatalf("Unknown action: %s", action)
 	}
 	a.logger.Info("Done")
 }
