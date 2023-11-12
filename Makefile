@@ -24,7 +24,7 @@ test:
 	
 .PHONY: compose
 compose:build_linux
-	docker-compose up -d
+	docker-compose up -d --force-recreate
 
 .PHONY: decompose
 decompose:

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"cenarius/internal/cache"
 	"cenarius/internal/cache/filecache"
+	"cenarius/internal/cache/mcache"
 	"cenarius/internal/model"
 	"cenarius/internal/server"
 	"cenarius/internal/userinput"
@@ -27,6 +28,7 @@ type agent struct {
 	client http.Client
 	config *Config
 	logger *logrus.Logger
+	cache  cache.StoreCache
 	store  cache.StoreCache
 }
 
@@ -40,21 +42,25 @@ func NewAgent(config *Config) *agent {
 		config: config,
 		logger: logrus.New(),
 	}
-	f, err := os.OpenFile(a.config.CacheFile, os.O_RDWR|os.O_CREATE, 0640)
-	if err != nil {
-		a.logger.Errorf("openFile: Failed to open file %v", a.config.CacheFile)
-		return nil
-	}
-	a.store = filecache.New(f)
 	return a
 }
 
 // Start starts the agent
 func (a *agent) Start() error {
 	ctx := context.Background()
+	a.logger.Info("Configuring logger")
 	if err := a.configureLogger(); err != nil {
 		return err
 	}
+	a.logger.Info("Configuring store")
+	if err := a.configureStore(); err != nil {
+		return err
+	}
+	a.logger.Info("Reading cache from store")
+	if err := a.readCache(); err != nil {
+		return err
+	}
+	a.logger.Info("Check the server availability")
 	a.ping(ctx)
 	a.userInput()
 	return nil
@@ -62,6 +68,9 @@ func (a *agent) Start() error {
 
 // Stop stops the agent
 func (a *agent) Shutdown() {
+	if err := a.saveCache(); err != nil {
+		a.logger.Errorf("Unable to save cache: %s", err.Error())
+	}
 	a.store.Cache().Close()
 }
 
@@ -72,6 +81,65 @@ func (a *agent) configureLogger() error {
 		return err
 	}
 	a.logger.SetLevel(level)
+	return nil
+}
+func (a *agent) configureStore() error {
+	f, err := os.OpenFile(a.config.CacheFile, os.O_RDWR|os.O_CREATE, 0640)
+	if err != nil {
+		a.logger.Errorf("agent.configureStore Failed to open file %v", a.config.CacheFile)
+		return err
+	}
+	a.store = filecache.New(f)
+	a.cache = mcache.New()
+	return nil
+}
+
+func (a *agent) getKeyAndIV() (string, string) {
+	a.logger.Info("agent.getKeyAndIV is working")
+	key := a.config.Login + a.config.Password
+	a.logger.Info("agent.getKeyAndIV key: ", key)
+	if len(key) < 32 {
+		for i := 1; len(key) < 32; i++ {
+			key += strconv.Itoa(i)
+			a.logger.Info("agent.getKeyAndIV key after modification: ", i)
+		}
+	}
+	key = key[0:32]
+	iv := key[0:16]
+	a.logger.Info("agent.getKeyAndIV Key, vector: ", key, iv)
+	return key, iv
+}
+func (a *agent) readCache() error {
+	key, iv := a.getKeyAndIV()
+	c, err := a.store.Cache().Get()
+	if err != nil {
+		return err
+	}
+	a.logger.Info("agent.readCache cache: ", c)
+	if c != nil {
+		if err := c.Decrypt(key, iv); err != nil {
+			return err
+		}
+		if err := a.cache.Cache().Save(c); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (a *agent) saveCache() error {
+	key, iv := a.getKeyAndIV()
+	c, err := a.cache.Cache().Get()
+	if err != nil {
+		return err
+	}
+	if err := c.Encrypt(key, iv); err != nil {
+		return err
+	}
+	if err := a.store.Cache().Save(c); err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -156,104 +224,84 @@ func (a *agent) sendRequest(ctx context.Context, path string, method string, v a
 }
 
 func (a *agent) register(ctx context.Context) {
-	uri := "api/v1/user/register"
 	m := &model.User{Login: a.config.Login, Password: a.config.Password}
-	a.sendRequest(ctx, uri, http.MethodPost, m, false)
+	a.sendRequest(ctx, registerURI, http.MethodPost, m, false)
 }
 
 func (a *agent) ping(ctx context.Context) {
-	uri := "api/v1/private/ping"
 	m := &model.User{Login: a.config.Login, Password: a.config.Password}
-	a.sendRequest(ctx, uri, http.MethodGet, m, false)
+	a.sendRequest(ctx, pingURI, http.MethodGet, m, false)
 }
 
 func (a *agent) listLogingWithPassword(ctx context.Context) {
-	uri := "api/v1/private/loginwithpasswords"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	a.sendRequest(ctx, logingWithPasswordGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) getLogingWithPassword(ctx context.Context) {
-	uri := "api/v1/private/loginwithpasswords"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	a.sendRequest(ctx, logingWithPasswordGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) addLogingWithPassword(ctx context.Context, m *model.LoginWithPassword) {
-	uri := "api/v1/private/loginwithpassword"
-	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	a.sendRequest(ctx, logingWithPasswordBodyURI, http.MethodPost, m, true)
+}
+
+func (a *agent) updateLogingWithPassword(ctx context.Context, m *model.LoginWithPassword) {
+	a.sendRequest(ctx, logingWithPasswordBodyURI, http.MethodPut, m, true)
 }
 
 func (a *agent) deleteLogingWithPassword(ctx context.Context, id int) {
-	uri := "api/v1/private/loginwithpassword/" + strconv.Itoa(id)
+	uri := fmt.Sprintf("%s/%s", logingWithPasswordBodyURI, strconv.Itoa(id))
 	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
-}
-func (a *agent) updateLogingWithPassword(ctx context.Context, m *model.LoginWithPassword) {
-	uri := "api/v1/private/loginwithpassword"
-	a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) listCreditCard(ctx context.Context) {
-	uri := "api/v1/private/creditcards"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	a.sendRequest(ctx, creditCardGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) getCreditCard(ctx context.Context) {
-	uri := "api/v1/private/creditcards"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	a.sendRequest(ctx, creditCardGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) addCreditCard(ctx context.Context, m *model.CreditCard) {
-	uri := "api/v1/private/creditcard"
-	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	a.sendRequest(ctx, creditCardBodyURI, http.MethodPost, m, true)
+}
+
+func (a *agent) updateCreditCard(ctx context.Context, m *model.CreditCard) {
+	a.sendRequest(ctx, creditCardBodyURI, http.MethodPut, m, true)
 }
 
 func (a *agent) deleteCreditCard(ctx context.Context, id int) {
-	uri := "api/v1/private/creditcard/" + strconv.Itoa(id)
+	uri := fmt.Sprintf("%s/%s", creditCardBodyURI, strconv.Itoa(id))
 	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
-}
-func (a *agent) updateCreditCard(ctx context.Context, m *model.CreditCard) {
-	uri := "api/v1/private/creditcard"
-	a.sendRequest(ctx, uri, http.MethodPut, m, true)
 }
 
 func (a *agent) listSecretText(ctx context.Context) {
-	uri := "api/v1/private/secrettexts"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	a.sendRequest(ctx, secretTextGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) getSecretText(ctx context.Context) {
-	uri := "api/v1/private/secrettexts"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	a.sendRequest(ctx, secretTextGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) addSecretText(ctx context.Context, m *model.SecretText) {
-	uri := "api/v1/private/secrettext"
-	a.sendRequest(ctx, uri, http.MethodPost, m, true)
+	a.sendRequest(ctx, secretTextBodyURI, http.MethodPost, m, true)
 }
 
 func (a *agent) deleteSecretText(ctx context.Context, id int) {
-	uri := "api/v1/private/secrettext/" + strconv.Itoa(id)
+	uri := fmt.Sprintf("%s/%s", secretTextBodyURI, strconv.Itoa(id))
 	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
 }
 func (a *agent) updateSecretText(ctx context.Context, m *model.SecretText) {
-	uri := "api/v1/private/secrettext"
-	a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	a.sendRequest(ctx, secretTextBodyURI, http.MethodPut, m, true)
 }
 
 func (a *agent) listSecretFile(ctx context.Context) {
-	uri := "api/v1/private/secretfiles"
-	a.sendRequest(ctx, uri, http.MethodGet, nil, true)
+	a.sendRequest(ctx, secretFileGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) getSecretFile(ctx context.Context, id string) {
-	uri := "api/v1/private/secretfile/" + id
+	uri := fmt.Sprintf("%s/%s", secretFileBodyURI, id)
 	endpoint := a.geHTTPtURL(uri)
-
-	// req, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
-	// if err != nil {
-	// 	a.logger.Fatalf("agent.getSecretFile create request err: %s", err.Error())
-	// }
-	// req.Header.Set(server.AuthHeader, a.encodeAuth())
-
 	req, err := a.getRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
 		a.logger.Fatalf("agent.getSecretFile req err: %s", err.Error())
@@ -279,7 +327,6 @@ func (a *agent) getSecretFile(ctx context.Context, id string) {
 }
 
 func (a *agent) uploadSecretFile(ctx context.Context, m *model.SecretFile) {
-	uri := "api/v1/private/secretfile"
 	file, err := os.Open(m.Path)
 	if err != nil {
 		a.logger.Fatalf("The file doesn't exist: %s", m.Path)
@@ -296,7 +343,7 @@ func (a *agent) uploadSecretFile(ctx context.Context, m *model.SecretFile) {
 		a.logger.Fatalf("Failed copy part of file: %s", err.Error())
 	}
 	writer.Close()
-	endpoint := a.geHTTPtURL(uri)
+	endpoint := a.geHTTPtURL(secretFileBodyURI)
 	req, err := a.getRequest(ctx, http.MethodPost, endpoint, body)
 	if err != nil {
 		a.logger.Fatalf("agent.addSecretFile req err: %s", err.Error())
@@ -317,13 +364,13 @@ func (a *agent) uploadSecretFile(ctx context.Context, m *model.SecretFile) {
 	a.updateSecretFile(ctx, m)
 }
 
-func (a *agent) deleteSecretFile(ctx context.Context, id int) {
-	uri := "api/v1/private/secretfile/" + strconv.Itoa(id)
-	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
-}
 func (a *agent) updateSecretFile(ctx context.Context, m *model.SecretFile) {
-	uri := "api/v1/private/secretfile"
-	a.sendRequest(ctx, uri, http.MethodPut, m, true)
+	a.sendRequest(ctx, secretFileBodyURI, http.MethodPut, m, true)
+}
+
+func (a *agent) deleteSecretFile(ctx context.Context, id int) {
+	uri := fmt.Sprintf("%s/%s", secretFileBodyURI, strconv.Itoa(id))
+	a.sendRequest(ctx, uri, http.MethodDelete, nil, true)
 }
 
 func (a *agent) list(ctx context.Context, target string) {
@@ -433,13 +480,13 @@ func (a *agent) update(ctx context.Context, target string) {
 
 func (a *agent) userInput() {
 	ctx := context.Background()
-	action := userinput.Input("Action")
+	action := userinput.Input("Action: (r|register) (l|list) (g|get) (a|add) (d|delete) (u|update)")
 	a.logger.Infof("agent.userInput action: %s", action)
 	if action == "register" || action == "r" {
 		a.register(ctx)
 		return
 	}
-	target := userinput.Input("Type of secret")
+	target := userinput.Input("Type of secret you want to operate: (l|login|password|lp) (c|credit|card|cc|creditcard) (t|text|secrettext) (f|file|secretfile)")
 	switch action {
 	case "list", "l":
 		a.list(ctx, target)

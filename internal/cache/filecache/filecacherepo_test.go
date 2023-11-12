@@ -38,7 +38,7 @@ func TestFileCacheRepo(t *testing.T) {
 			if err := r.Save(tt.args); (err != nil) != tt.wantErr {
 				t.Errorf("FileCacheRepo.Save() error = %v, wantErr %v", err, tt.wantErr)
 			}
-			got, err := r.GetAll()
+			got, err := r.Get()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("FileCacheRepo.Save() error = %v, wantErr %v", err, tt.wantErr)
 			}

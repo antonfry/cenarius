@@ -14,7 +14,7 @@ type FileCacheRepo struct {
 	mutex sync.RWMutex
 }
 
-func (r *FileCacheRepo) Save(v *model.SecretCache) error {
+func (r *FileCacheRepo) Save(c *model.SecretCache) error {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 	if err := r.store.file.Truncate(0); err != nil {
@@ -23,9 +23,9 @@ func (r *FileCacheRepo) Save(v *model.SecretCache) error {
 	if _, err := r.store.file.Seek(0, 0); err != nil {
 		return err
 	}
-	jsonSting, err := json.Marshal(v)
+	jsonSting, err := json.Marshal(c)
 	if err != nil {
-		log.Fatalf("Save: failed to marshal metrics %v", v)
+		log.Fatalf("Save: failed to marshal metrics %v", c)
 	}
 	_, err = r.store.file.Write([]byte(jsonSting))
 	if err != nil {
@@ -39,7 +39,7 @@ func (r *FileCacheRepo) Save(v *model.SecretCache) error {
 	return nil
 }
 
-func (r *FileCacheRepo) GetAll() (*model.SecretCache, error) {
+func (r *FileCacheRepo) Get() (*model.SecretCache, error) {
 	_, _ = r.store.file.Seek(0, 0)
 	var d *model.SecretCache
 	r.mutex.RLock()
@@ -47,17 +47,16 @@ func (r *FileCacheRepo) GetAll() (*model.SecretCache, error) {
 	r.store.file.Sync()
 	s := bufio.NewScanner(r.store.file)
 	for s.Scan() {
-		if s.Text() == "" {
-			continue
-		}
+		log.Info("FileCacheRepo.Get Scan: ", s.Text())
 		if err := json.Unmarshal([]byte(s.Text()), &d); err != nil {
-			log.Printf("GetAll failed to Unmarshal json: %+v", string(s.Bytes()))
+			log.Printf("GetAll failed to Unmarshal json: %+v", s.Text())
 			return nil, err
 		}
 	}
 	if s.Err() != nil {
-		log.Printf("GetAll: Failed to Scan file")
+		log.Infof("GetAll: Failed to Scan file")
 	}
+	log.Info("FileCacheRepo.Get returning: ", d)
 	return d, nil
 }
 

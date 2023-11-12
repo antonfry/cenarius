@@ -7,7 +7,7 @@ type StoreCache interface {
 }
 
 type Casher interface {
-	GetAll() (*model.SecretCache, error)
+	Get() (*model.SecretCache, error)
 	Save(*model.SecretCache) error
 	Close() error
 }

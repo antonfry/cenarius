@@ -169,6 +169,5 @@ func main() {
 	log.Infof("Build commit: %v", buildCommit)
 	if err := worker.Start(); err != nil {
 		log.Error(err)
-		worker.Shutdown()
 	}
 }
