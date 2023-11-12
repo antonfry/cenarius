@@ -17,6 +17,18 @@ type CreditCard struct {
 	CVC           string `json:"cvc"`
 }
 
+func (c *CreditCard) String() string {
+	return fmt.Sprintf(
+		"ID: %d, Name: %s, OwnerName: %s, OwnerLastName: %s, Number: %s, CVC: %s, Meta: %s",
+		c.ID, c.Name, c.OwnerName, c.OwnerLastName, c.Number, c.CVC, c.Meta,
+	)
+}
+
+func (c *CreditCard) Sanitaze() {
+	c.Number = ""
+	c.CVC = ""
+}
+
 func (s *CreditCard) Validate() error {
 	return validation.ValidateStruct(
 		s,
@@ -52,7 +64,6 @@ func (s *CreditCard) Encrypt(key, iv string) error {
 }
 
 func (s *CreditCard) Decrypt(key, iv string) error {
-	fmt.Printf("model.CreditCard Decrypting: %v", s)
 	decOwnerName, err := encrypt.AESDecrypted(s.OwnerName, key, iv)
 	if err != nil {
 		return err

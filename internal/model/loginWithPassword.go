@@ -2,6 +2,7 @@ package model
 
 import (
 	"cenarius/internal/encrypt"
+	"fmt"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
@@ -11,6 +12,15 @@ type LoginWithPassword struct {
 	SecretData
 	Login    string `json:"login"`
 	Password string `json:"password"`
+}
+
+func (l *LoginWithPassword) String() string {
+	return fmt.Sprintf("ID: %d, Name: %s, Login: %s, Password: %s, Meta: %s", l.ID, l.Name, l.Login, l.Password, l.Meta)
+}
+
+func (l *LoginWithPassword) Sanitaze() {
+	l.Login = ""
+	l.Password = ""
 }
 
 func (s *LoginWithPassword) Validate() error {

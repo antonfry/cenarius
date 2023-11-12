@@ -7,6 +7,8 @@ type Config struct {
 	Login     string `json:"login" toml:"login,omitempty"`
 	Password  string `json:"password" toml:"password,omitempty"`
 	CacheFile string `json:"cache_file"`
+	SecretKey string `json:"secret_key"`
+	SecretIV  string `json:"secret_iv"`
 }
 
 func NewConfig() *Config {

@@ -1,10 +1,16 @@
 package model
 
+import "fmt"
+
 type SecretCache struct {
 	LoginWithPasswords []*LoginWithPassword `json:"login_and_passwords"`
 	CreditCards        []*CreditCard        `json:"credit_cards"`
 	SecretTexts        []*SecretText        `json:"secret_texts"`
 	SecretFiles        []*SecretFile        `json:"secret_files"`
+}
+
+func (s *SecretCache) String() string {
+	return fmt.Sprintf("LoginsPasswords:%v, CreditCards: %v, SecretTexts:%v, SecretFiles: %v", s.LoginWithPasswords, s.CreditCards, s.SecretTexts, s.SecretFiles)
 }
 
 func (c *SecretCache) Encrypt(key, iv string) error {

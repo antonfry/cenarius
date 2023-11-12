@@ -3,8 +3,9 @@ package userinput
 import (
 	"cenarius/internal/model"
 	"errors"
-	"log"
 	"os"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func InputSecretFile(askPath bool) *model.SecretFile {
@@ -13,7 +14,8 @@ func InputSecretFile(askPath bool) *model.SecretFile {
 	if askPath {
 		path := Input("File path")
 		if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
-			log.Fatalf("Path doesn't exist: %s", path)
+			log.Errorf("Path doesn't exist: %s", path)
+			return nil
 		}
 		m.Path = path
 	}

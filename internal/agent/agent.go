@@ -13,6 +13,7 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -24,12 +25,15 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+var errBadHTTPStatusCode = errors.New("bad http status code")
+
 type agent struct {
-	client http.Client
-	config *Config
-	logger *logrus.Logger
-	cache  cache.StoreCache
-	store  cache.StoreCache
+	client     http.Client
+	config     *Config
+	logger     *logrus.Logger
+	cache      cache.StoreCache
+	store      cache.StoreCache
+	onlineMode bool
 }
 
 // NewServer returns new server object
@@ -52,6 +56,7 @@ func (a *agent) Start() error {
 	if err := a.configureLogger(); err != nil {
 		return err
 	}
+	a.setKeyAndIV()
 	a.logger.Info("Configuring store")
 	if err := a.configureStore(); err != nil {
 		return err
@@ -60,8 +65,20 @@ func (a *agent) Start() error {
 	if err := a.readCache(); err != nil {
 		return err
 	}
-	a.logger.Info("Check the server availability")
-	a.ping(ctx)
+	a.logger.Info("Checking the server availability")
+	statusCode, err := a.ping(ctx)
+	if err != nil {
+		return err
+	}
+	if statusCode < 0 {
+		a.onlineMode = false
+	}
+	if statusCode == http.StatusUnauthorized {
+		a.register(ctx)
+	}
+	if err := a.updateCache(ctx); err != nil {
+		return err
+	}
 	a.userInput()
 	return nil
 }
@@ -94,47 +111,94 @@ func (a *agent) configureStore() error {
 	return nil
 }
 
-func (a *agent) getKeyAndIV() (string, string) {
-	a.logger.Info("agent.getKeyAndIV is working")
+func (a *agent) setKeyAndIV() {
+	a.logger.Debug("agent.getKeyAndIV is working")
 	key := a.config.Login + a.config.Password
-	a.logger.Info("agent.getKeyAndIV key: ", key)
+	a.logger.Debug("agent.getKeyAndIV key: ", key)
 	if len(key) < 32 {
 		for i := 1; len(key) < 32; i++ {
 			key += strconv.Itoa(i)
-			a.logger.Info("agent.getKeyAndIV key after modification: ", i)
 		}
 	}
 	key = key[0:32]
 	iv := key[0:16]
-	a.logger.Info("agent.getKeyAndIV Key, vector: ", key, iv)
-	return key, iv
+	a.logger.Debug("agent.getKeyAndIV Key, vector: ", key, iv)
+	a.config.SecretKey = key
+	a.config.SecretIV = iv
 }
 func (a *agent) readCache() error {
-	key, iv := a.getKeyAndIV()
 	c, err := a.store.Cache().Get()
 	if err != nil {
 		return err
 	}
-	a.logger.Info("agent.readCache cache: ", c)
+	a.logger.Debug("agent.readCache cache: ", c)
 	if c != nil {
-		if err := c.Decrypt(key, iv); err != nil {
+		if err := c.Decrypt(a.config.SecretKey, a.config.SecretIV); err != nil {
 			return err
 		}
 		if err := a.cache.Cache().Save(c); err != nil {
 			return err
 		}
 	}
+	return nil
+}
 
+func (a *agent) getSecretsWrapper(ctx context.Context, uri string, v any) error {
+	data, s, err := a.sendRequest2(ctx, uri, http.MethodGet, nil)
+	if err != nil {
+		return err
+	}
+	if s != http.StatusOK && s != http.StatusCreated {
+		a.logger.Errorf("Faliled to get %s: %d", uri, s)
+		return errBadHTTPStatusCode
+	}
+	a.logger.Debugf("Got from %s: %v", uri, string(data))
+	if err := json.Unmarshal(data, &v); err != nil {
+		a.logger.Errorf("agent.getSecrets unmarshal json failed %v: %v", string(data), err)
+		return err
+	}
+	return nil
+}
+
+func (a *agent) getSecrets(ctx context.Context) (*model.SecretCache, error) {
+	var cache = &model.SecretCache{}
+	if err := a.getSecretsWrapper(ctx, logingWithPasswordGetURI, &cache.LoginWithPasswords); err != nil {
+		return nil, err
+	}
+	if err := a.getSecretsWrapper(ctx, creditCardGetURI, &cache.CreditCards); err != nil {
+		return nil, err
+	}
+	if err := a.getSecretsWrapper(ctx, secretTextGetURI, &cache.SecretTexts); err != nil {
+		return nil, err
+	}
+	if err := a.getSecretsWrapper(ctx, secretFileGetURI, &cache.SecretFiles); err != nil {
+		return nil, err
+	}
+	a.logger.Debugf("Got new cache from server: %v", cache)
+	return cache, nil
+}
+
+func (a *agent) updateCache(ctx context.Context) error {
+	cache, err := a.getSecrets(ctx)
+	if err != nil {
+		return err
+	}
+	a.logger.Debugf("Got secret: %v", cache)
+	if err := cache.Encrypt(a.config.SecretKey, a.config.SecretIV); err != nil {
+		return err
+	}
+	if err := a.store.Cache().Save(cache); err != nil {
+		return err
+	}
 	return nil
 }
 
 func (a *agent) saveCache() error {
-	key, iv := a.getKeyAndIV()
 	c, err := a.cache.Cache().Get()
 	if err != nil {
 		return err
 	}
-	if err := c.Encrypt(key, iv); err != nil {
+	if err := c.Encrypt(a.config.SecretKey, a.config.SecretIV); err != nil {
 		return err
 	}
 	if err := a.store.Cache().Save(c); err != nil {
@@ -163,7 +227,8 @@ func (a *agent) write2Buffer(buf *bytes.Buffer, v any) {
 		}
 	} else {
 		if _, err := io.WriteString(buf, string(jsonData)); err != nil {
-			a.logger.Fatalf("agent.write2Buffer err: %s", err.Error())
+			a.logger.Errorf("agent.write2Buffer err: %s", err.Error())
+			return
 		}
 	}
 }
@@ -204,23 +269,56 @@ func (a *agent) sendRequest(ctx context.Context, path string, method string, v a
 	}
 	req, err := a.getRequest(ctx, method, endpoint, &buf)
 	if err != nil {
-		a.logger.Fatalf("agent.sendRequest req err: %s", err.Error())
+		a.logger.Errorf("agent.sendRequest req err: %s", err.Error())
+		return
 	}
 	req.Header.Set("Content-Type", "application/json; charset=utf-8")
 	resp, err := a.client.Do(req)
 	if err != nil {
-		a.logger.Fatalf("agent.sendRequest resp err: %s", err.Error())
+		a.logger.Errorf("agent.sendRequest resp err: %s", err.Error())
+		return
 	}
 	defer resp.Body.Close()
 	a.logger.Debugf("sendRequest response code: %d", resp.StatusCode)
 
 	bodyBytes, err := io.ReadAll(resp.Body)
 	if err != nil {
-		a.logger.Fatalf("sendRequest err: %s", err.Error())
+		a.logger.Errorf("sendRequest err: %s", err.Error())
+		return
 	}
 	if rbody {
 		fmt.Printf("Response:\n %v", bytes.NewBuffer(bodyBytes).String())
 	}
+}
+
+// sendRequest send http request
+func (a *agent) sendRequest2(ctx context.Context, path string, method string, v any) ([]byte, int, error) {
+	endpoint := a.geHTTPtURL(path)
+	var buf bytes.Buffer
+	a.logger.Debug("sendRequest endpoint: ", endpoint)
+	if v != nil {
+		a.write2Buffer(&buf, v)
+	}
+	req, err := a.getRequest(ctx, method, endpoint, &buf)
+	if err != nil {
+		a.logger.Errorf("agent.sendRequest req err: %s", err.Error())
+		return nil, 0, err
+	}
+	req.Header.Set("Content-Type", "application/json; charset=utf-8")
+	resp, err := a.client.Do(req)
+	if err != nil {
+		a.logger.Errorf("agent.sendRequest resp err: %s", err.Error())
+		return nil, 0, err
+	}
+	defer resp.Body.Close()
+	a.logger.Debugf("sendRequest response code: %d", resp.StatusCode)
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		a.logger.Errorf("sendRequest err: %s", err.Error())
+		return nil, 0, err
+	}
+	return bodyBytes, resp.StatusCode, nil
 }
 
 func (a *agent) register(ctx context.Context) {
@@ -228,17 +326,44 @@ func (a *agent) register(ctx context.Context) {
 	a.sendRequest(ctx, registerURI, http.MethodPost, m, false)
 }
 
-func (a *agent) ping(ctx context.Context) {
+func (a *agent) ping(ctx context.Context) (int, error) {
 	m := &model.User{Login: a.config.Login, Password: a.config.Password}
-	a.sendRequest(ctx, pingURI, http.MethodGet, m, false)
+	_, s, err := a.sendRequest2(ctx, pingURI, http.MethodGet, m)
+	if err != nil {
+		a.logger.Errorf("agent.ping error: %s", err.Error())
+		return 0, err
+	}
+	return s, nil
 }
 
 func (a *agent) listLogingWithPassword(ctx context.Context) {
-	a.sendRequest(ctx, logingWithPasswordGetURI, http.MethodGet, nil, true)
+	fmt.Println("You Logins and Passwords: ")
+	cache, err := a.cache.Cache().Get()
+	if err != nil {
+		a.logger.Error(err.Error())
+		return
+	}
+	l := make([]*model.LoginWithPassword, len(cache.LoginWithPasswords))
+	copy(l, cache.LoginWithPasswords)
+	for _, i := range l {
+		i.Encrypt(a.config.SecretKey, a.config.SecretIV)
+		fmt.Println(i)
+		i.Decrypt(a.config.SecretKey, a.config.SecretIV)
+	}
 }
 
-func (a *agent) getLogingWithPassword(ctx context.Context) {
-	a.sendRequest(ctx, logingWithPasswordGetURI, http.MethodGet, nil, true)
+func (a *agent) getLogingWithPassword(ctx context.Context, id int) {
+	fmt.Printf("You Login and Password with id: %d\n", id)
+	cache, err := a.cache.Cache().Get()
+	if err != nil {
+		a.logger.Error(err.Error())
+		return
+	}
+	for _, i := range cache.LoginWithPasswords {
+		if i.ID == id {
+			fmt.Println(i)
+		}
+	}
 }
 
 func (a *agent) addLogingWithPassword(ctx context.Context, m *model.LoginWithPassword) {
@@ -255,11 +380,33 @@ func (a *agent) deleteLogingWithPassword(ctx context.Context, id int) {
 }
 
 func (a *agent) listCreditCard(ctx context.Context) {
-	a.sendRequest(ctx, creditCardGetURI, http.MethodGet, nil, true)
+	fmt.Println("You Credit Cards: ")
+	cache, err := a.cache.Cache().Get()
+	if err != nil {
+		a.logger.Error(err.Error())
+		return
+	}
+	for _, i := range cache.CreditCards {
+		i.Encrypt(a.config.SecretKey, a.config.SecretIV)
+		fmt.Println(i)
+		i.Decrypt(a.config.SecretKey, a.config.SecretIV)
+	}
+	//a.sendRequest(ctx, creditCardGetURI, http.MethodGet, nil, true)
 }
 
-func (a *agent) getCreditCard(ctx context.Context) {
-	a.sendRequest(ctx, creditCardGetURI, http.MethodGet, nil, true)
+func (a *agent) getCreditCard(ctx context.Context, id int) {
+	fmt.Printf("You Credit Cards with id: %d\n", id)
+	cache, err := a.cache.Cache().Get()
+	if err != nil {
+		a.logger.Error(err.Error())
+		return
+	}
+	for _, i := range cache.CreditCards {
+		if i.ID == id {
+			fmt.Println(i)
+		}
+	}
+	//a.sendRequest(ctx, creditCardGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) addCreditCard(ctx context.Context, m *model.CreditCard) {
@@ -276,11 +423,33 @@ func (a *agent) deleteCreditCard(ctx context.Context, id int) {
 }
 
 func (a *agent) listSecretText(ctx context.Context) {
-	a.sendRequest(ctx, secretTextGetURI, http.MethodGet, nil, true)
+	fmt.Println("You Credit Cards: ")
+	cache, err := a.cache.Cache().Get()
+	if err != nil {
+		a.logger.Error(err.Error())
+		return
+	}
+	for _, i := range cache.SecretTexts {
+		i.Encrypt(a.config.SecretKey, a.config.SecretIV)
+		fmt.Println(i)
+		i.Decrypt(a.config.SecretKey, a.config.SecretIV)
+	}
 }
 
-func (a *agent) getSecretText(ctx context.Context) {
-	a.sendRequest(ctx, secretTextGetURI, http.MethodGet, nil, true)
+func (a *agent) getSecretText(ctx context.Context, id int) {
+	fmt.Printf("You Credit Cards with id: %d\n", id)
+	cache, err := a.cache.Cache().Get()
+	if err != nil {
+		a.logger.Error(err.Error())
+		return
+	}
+	for _, i := range cache.SecretTexts {
+		if i.ID == id {
+			i.Encrypt(a.config.SecretKey, a.config.SecretIV)
+			fmt.Println(i)
+			i.Decrypt(a.config.SecretKey, a.config.SecretIV)
+		}
+	}
 }
 
 func (a *agent) addSecretText(ctx context.Context, m *model.SecretText) {
@@ -296,7 +465,17 @@ func (a *agent) updateSecretText(ctx context.Context, m *model.SecretText) {
 }
 
 func (a *agent) listSecretFile(ctx context.Context) {
-	a.sendRequest(ctx, secretFileGetURI, http.MethodGet, nil, true)
+	fmt.Println("You Credit Cards: ")
+	cache, err := a.cache.Cache().Get()
+	if err != nil {
+		a.logger.Error(err.Error())
+		return
+	}
+	for _, i := range cache.SecretFiles {
+		i.Encrypt(a.config.SecretKey, a.config.SecretIV)
+		fmt.Println(i)
+		i.Decrypt(a.config.SecretKey, a.config.SecretIV)
+	}
 }
 
 func (a *agent) getSecretFile(ctx context.Context, id string) {
@@ -304,32 +483,37 @@ func (a *agent) getSecretFile(ctx context.Context, id string) {
 	endpoint := a.geHTTPtURL(uri)
 	req, err := a.getRequest(ctx, http.MethodGet, endpoint, nil)
 	if err != nil {
-		a.logger.Fatalf("agent.getSecretFile req err: %s", err.Error())
+		a.logger.Errorf("agent.getSecretFile req err: %s", err.Error())
+		return
 	}
 	resp, err := a.client.Do(req)
 	if err != nil {
-		a.logger.Fatalf("agent.getSecretFile resp err: %s", err.Error())
+		a.logger.Errorf("agent.getSecretFile resp err: %s", err.Error())
+		return
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode != http.StatusOK {
-		a.logger.Fatalf("bad status: %s", resp.Status)
+		a.logger.Errorf("bad status: %s", resp.Status)
+		return
 	}
 	out, err := os.Create("SecretFile_" + id)
 	if err != nil {
-		a.logger.Fatalf("Can't create local file: %s", err.Error())
+		a.logger.Errorf("Can't create local file: %s", err.Error())
+		return
 	}
 	defer out.Close()
 
 	_, err = io.Copy(out, resp.Body)
 	if err != nil {
-		a.logger.Fatalf("Can't copy reposnse to local file: %s", err.Error())
+		a.logger.Errorf("Can't copy reposnse to local file: %s", err.Error())
+		return
 	}
 }
 
 func (a *agent) uploadSecretFile(ctx context.Context, m *model.SecretFile) {
 	file, err := os.Open(m.Path)
 	if err != nil {
-		a.logger.Fatalf("The file doesn't exist: %s", m.Path)
+		a.logger.Errorf("The file doesn't exist: %s", m.Path)
 	}
 	defer file.Close()
 
@@ -337,26 +521,31 @@ func (a *agent) uploadSecretFile(ctx context.Context, m *model.SecretFile) {
 	writer := multipart.NewWriter(body)
 	part, err := writer.CreateFormFile("secretFile", filepath.Base(file.Name()))
 	if err != nil {
-		a.logger.Fatalf("agent.addSecretFile CreateFormFile %s: %s", file.Name(), err.Error())
+		a.logger.Errorf("agent.addSecretFile CreateFormFile %s: %s", file.Name(), err.Error())
+		return
 	}
 	if _, err := io.Copy(part, file); err != nil {
-		a.logger.Fatalf("Failed copy part of file: %s", err.Error())
+		a.logger.Errorf("Failed copy part of file: %s", err.Error())
+		return
 	}
 	writer.Close()
 	endpoint := a.geHTTPtURL(secretFileBodyURI)
 	req, err := a.getRequest(ctx, http.MethodPost, endpoint, body)
 	if err != nil {
-		a.logger.Fatalf("agent.addSecretFile req err: %s", err.Error())
+		a.logger.Errorf("agent.addSecretFile req err: %s", err.Error())
+		return
 	}
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	resp, err := a.client.Do(req)
 	if err != nil {
-		a.logger.Fatalf("agent.addSecretFile resp err: %s", err.Error())
+		a.logger.Errorf("agent.addSecretFile resp err: %s", err.Error())
+		return
 	}
 	defer resp.Body.Close()
 	responseM := &model.SecretFile{}
 	if err := json.NewDecoder(resp.Body).Decode(responseM); err != nil {
-		a.logger.Fatalf("Unable to parse resp body in uploadSecretFile: %v", err)
+		a.logger.Errorf("Unable to parse resp body in uploadSecretFile: %v", err)
+		return
 	}
 	a.logger.Infof("agent.uploadSecretFile uploaded: %v", responseM)
 	m.ID = responseM.ID
@@ -384,24 +573,30 @@ func (a *agent) list(ctx context.Context, target string) {
 	case "f", "file", "secretfile":
 		a.listSecretFile(ctx)
 	default:
-		a.logger.Fatalf("Unknown target: %s", target)
+		a.logger.Errorf("Unknown target: %s", target)
 	}
 }
 
 func (a *agent) get(ctx context.Context, target string) {
 	switch target {
 	case "l", "login", "password", "lp":
-		a.getLogingWithPassword(ctx)
+		a.listLogingWithPassword(ctx)
+		id := userinput.InputID()
+		a.getLogingWithPassword(ctx, id)
 	case "c", "credit", "card", "cc", "creditcard":
-		a.getCreditCard(ctx)
+		a.listCreditCard(ctx)
+		id := userinput.InputID()
+		a.getCreditCard(ctx, id)
 	case "t", "text", "secrettext":
-		a.getSecretText(ctx)
+		a.listSecretText(ctx)
+		id := userinput.InputID()
+		a.getSecretText(ctx, id)
 	case "f", "file", "secretfile":
 		a.listSecretFile(ctx)
 		id := userinput.InputID()
 		a.getSecretFile(ctx, strconv.Itoa(id))
 	default:
-		a.logger.Fatalf("Unknown target: %s", target)
+		a.logger.Errorf("Unknown target: %s", target)
 	}
 }
 
@@ -420,7 +615,7 @@ func (a *agent) add(ctx context.Context, target string) {
 		m := userinput.InputSecretFile(true)
 		a.uploadSecretFile(ctx, m)
 	default:
-		a.logger.Fatalf("Unknown target: %s", target)
+		a.logger.Errorf("Unknown target: %s", target)
 	}
 }
 
@@ -443,7 +638,7 @@ func (a *agent) delete(ctx context.Context, target string) {
 		id := userinput.InputID()
 		a.deleteSecretFile(ctx, id)
 	default:
-		a.logger.Fatalf("Unknown target: %s", target)
+		a.logger.Errorf("Unknown target: %s", target)
 	}
 }
 
@@ -474,7 +669,7 @@ func (a *agent) update(ctx context.Context, target string) {
 		m.ID = id
 		a.updateSecretFile(ctx, m)
 	default:
-		a.logger.Fatalf("Unknown target: %s", target)
+		a.logger.Errorf("Unknown target: %s", target)
 	}
 }
 
@@ -499,7 +694,10 @@ func (a *agent) userInput() {
 	case "update", "u":
 		a.update(ctx, target)
 	default:
-		a.logger.Fatalf("Unknown action: %s", action)
+		a.logger.Errorf("Unknown action: %s", action)
+	}
+	if err := a.updateCache(ctx); err != nil {
+		a.logger.Error(err)
 	}
 	a.logger.Info("Done")
 }

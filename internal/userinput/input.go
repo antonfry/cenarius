@@ -3,10 +3,11 @@ package userinput
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"os"
 	"strconv"
 	"strings"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func Input(w string) string {
@@ -14,7 +15,8 @@ func Input(w string) string {
 	fmt.Printf("Enter %s: ", w)
 	text, err := reader.ReadString('\n')
 	if err != nil {
-		log.Fatal(err)
+		log.Error(err)
+		return ""
 	}
 	text = strings.Replace(text, "\r\n", "", -1)
 	fmt.Printf("Got: %s ", text)
@@ -25,7 +27,8 @@ func InputID() int {
 	InputID := Input("Id of secret")
 	id, err := strconv.Atoi(InputID)
 	if err != nil {
-		log.Fatalf("Wrong id: %s", err.Error())
+		log.Errorf("Wrong id: %s", err.Error())
+		return -1
 	}
 	return id
 }

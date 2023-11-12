@@ -2,6 +2,7 @@ package model
 
 import (
 	"cenarius/internal/encrypt"
+	"fmt"
 
 	validation "github.com/go-ozzo/ozzo-validation"
 	"github.com/go-ozzo/ozzo-validation/is"
@@ -10,6 +11,14 @@ import (
 type SecretText struct {
 	SecretData
 	Text string `json:"text"`
+}
+
+func (t *SecretText) String() string {
+	return fmt.Sprintf("ID: %d, Name: %s, Text: %s, Meta: %s", t.ID, t.Name, t.Text, t.Meta)
+}
+
+func (t *SecretText) Sanitaze() {
+	t.Text = ""
 }
 
 func (s *SecretText) Validate() error {

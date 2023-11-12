@@ -25,15 +25,18 @@ func (r *FileCacheRepo) Save(c *model.SecretCache) error {
 	}
 	jsonSting, err := json.Marshal(c)
 	if err != nil {
-		log.Fatalf("Save: failed to marshal metrics %v", c)
+		log.Errorf("Save: failed to marshal metrics %v", c)
+		return err
 	}
 	_, err = r.store.file.Write([]byte(jsonSting))
 	if err != nil {
-		log.Fatalf("Save: failed to save metric %v", err)
+		log.Errorf("Save: failed to save metric %v", err)
+		return err
 	}
 	_, err = r.store.file.WriteString("\n")
 	if err != nil {
-		log.Fatalf("Save: failed to save new line")
+		log.Errorf("Save: failed to save new line")
+		return err
 	}
 
 	return nil
@@ -47,16 +50,17 @@ func (r *FileCacheRepo) Get() (*model.SecretCache, error) {
 	r.store.file.Sync()
 	s := bufio.NewScanner(r.store.file)
 	for s.Scan() {
-		log.Info("FileCacheRepo.Get Scan: ", s.Text())
+		log.Debug("FileCacheRepo.Get Scan: ", s.Text())
 		if err := json.Unmarshal([]byte(s.Text()), &d); err != nil {
 			log.Printf("GetAll failed to Unmarshal json: %+v", s.Text())
 			return nil, err
 		}
 	}
-	if s.Err() != nil {
-		log.Infof("GetAll: Failed to Scan file")
+	if err := s.Err(); err != nil {
+		log.Errorf("GetAll: Failed to Scan file")
+		return nil, err
 	}
-	log.Info("FileCacheRepo.Get returning: ", d)
+	log.Debug("FileCacheRepo.Get returning: ", d)
 	return d, nil
 }
 

@@ -2,8 +2,9 @@ package userinput
 
 import (
 	"cenarius/internal/model"
-	"log"
 	"strconv"
+
+	log "github.com/sirupsen/logrus"
 )
 
 func InputCreditCard() *model.CreditCard {
@@ -11,14 +12,16 @@ func InputCreditCard() *model.CreditCard {
 	inputNumber := Input("Number")
 	_, err := strconv.ParseInt(inputNumber, 10, 64)
 	if err != nil {
-		log.Fatalf("Wrong Number: %v", err)
+		log.Errorf("Wrong Number: %v", err)
+		return nil
 	}
 	ownerName := Input("Owner Name")
 	ownerLastName := Input("Owner Last Name")
 	inputCvc := Input("CVC number")
 	_, err = strconv.Atoi(inputCvc)
 	if err != nil {
-		log.Fatalf("Wrong CVC: %v", err)
+		log.Errorf("Wrong CVC: %v", err)
+		return nil
 	}
 	meta := Input("Meta")
 	m := &model.CreditCard{
