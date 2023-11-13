@@ -43,3 +43,14 @@ CREATE TABLE IF NOT EXISTS SecretFile(
     "path" varchar,
     "created_at" timestamp default NOW()
 );
+
+CREATE UNIQUE INDEX userlogin_idx ON users (login);
+
+CREATE UNIQUE INDEX LoginWithPasswordName_idx ON LoginWithPassword (name);
+CREATE UNIQUE INDEX LoginWithPasswordUserID_idx ON LoginWithPassword (user_id);
+CREATE UNIQUE INDEX CreditCardName_idx ON CreditCard (name);
+CREATE UNIQUE INDEX CreditCardUserID_idx ON CreditCard (user_id);
+CREATE UNIQUE INDEX SecretTextName_idx ON SecretText (name);
+CREATE UNIQUE INDEX SecretTextUserID_idx ON SecretText (user_id);
+CREATE UNIQUE INDEX SecretFileName_idx ON SecretFile (name);
+CREATE UNIQUE INDEX SecretFileUserID_idx ON SecretFile (user_id);
