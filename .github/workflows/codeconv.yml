@@ -26,5 +26,5 @@ jobs:
         with:
           go-version: '1.21'
       - name: Run coverage
-        run: CENARIUS_DATABASEDSN="postgres://postgres:postgres@127.0.0.1:5432/cenarius_test?sslmode=disable" go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
+        run: CENARIUS_DATABASEDSN="postgres://postgres:postgres@127.0.0.1:5432/cenarius_test?sslmode=disable" CENARIUS_MIGRATION_PATH="/home/runner/work/cenarius/cenarius/migrations" go test -v -race -coverprofile=coverage.out -covermode=atomic ./...
 

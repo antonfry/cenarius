@@ -9,8 +9,8 @@ type SecretCache struct {
 	SecretFiles        []*SecretFile        `json:"secret_files"`
 }
 
-func (s *SecretCache) String() string {
-	return fmt.Sprintf("LoginsPasswords:%v, CreditCards: %v, SecretTexts:%v, SecretFiles: %v", s.LoginWithPasswords, s.CreditCards, s.SecretTexts, s.SecretFiles)
+func (c *SecretCache) String() string {
+	return fmt.Sprintf("LoginsPasswords:%v, CreditCards: %v, SecretTexts:%v, SecretFiles: %v", c.LoginWithPasswords, c.CreditCards, c.SecretTexts, c.SecretFiles)
 }
 
 func (c *SecretCache) Encrypt(key, iv string) error {

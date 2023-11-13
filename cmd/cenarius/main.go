@@ -12,6 +12,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
+type cenariusWorker interface {
+	Start() error
+	Shutdown()
+}
 type flags struct {
 	mode           string
 	conf           string
@@ -21,11 +25,6 @@ type flags struct {
 	secretFilePath string
 	login          string
 	password       string
-}
-
-type cenariusWorker interface {
-	Start() error
-	Shutdown()
 }
 
 var (
@@ -75,6 +74,10 @@ func getServerEnv(conf *server.Config) *server.Config {
 	secretPath, ok := os.LookupEnv("CENARIUS_SECRET_STORAGE_PATH")
 	if ok {
 		conf.SecretFilePath = secretPath
+	}
+	migrationPath, ok := os.LookupEnv("CENARIUS_MIGRATION_PATH")
+	if ok {
+		conf.MigrationPath = migrationPath
 	}
 	return conf
 }

@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi"
+	"github.com/golang-migrate/migrate"
 	log "github.com/sirupsen/logrus"
 )
 
@@ -116,7 +117,10 @@ func (s *server) configureStore() error {
 		} else {
 			break
 		}
-
+	}
+	if err := sqlstore.MigrateSQL(conn, s.config.MigrationPath); err != nil && err.Error() != migrate.ErrNoChange.Error() {
+		s.logger.Error("Migration fail: ", err.Error())
+		return err
 	}
 	s.store = sqlstore.NewStore(conn)
 	return nil

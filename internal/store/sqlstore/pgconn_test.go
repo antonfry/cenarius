@@ -1,6 +1,7 @@
-package sqlstore
+package sqlstore_test
 
 import (
+	"cenarius/internal/store/sqlstore"
 	"os"
 	"testing"
 
@@ -32,7 +33,7 @@ func TestNewPGConn(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := NewPGConn(tt.databaseDsn)
+			got, err := sqlstore.NewPGConn(tt.databaseDsn)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("NewPGConn() error = %v, wantErr %v", err, tt.wantErr)
 				return

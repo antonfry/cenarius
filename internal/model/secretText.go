@@ -13,8 +13,8 @@ type SecretText struct {
 	Text string `json:"text"`
 }
 
-func (t *SecretText) String() string {
-	return fmt.Sprintf("ID: %d, Name: %s, Text: %s, Meta: %s", t.ID, t.Name, t.Text, t.Meta)
+func (s *SecretText) String() string {
+	return fmt.Sprintf("ID: %d, Name: %s, Text: %s, Meta: %s", s.ID, s.Name, s.Text, s.Meta)
 }
 
 func (s *SecretText) Validate() error {

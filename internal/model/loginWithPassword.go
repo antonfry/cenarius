@@ -14,8 +14,8 @@ type LoginWithPassword struct {
 	Password string `json:"password"`
 }
 
-func (l *LoginWithPassword) String() string {
-	return fmt.Sprintf("ID: %d, Name: %s, Login: %s, Password: %s, Meta: %s", l.ID, l.Name, l.Login, l.Password, l.Meta)
+func (s *LoginWithPassword) String() string {
+	return fmt.Sprintf("ID: %d, Name: %s, Login: %s, Password: %s, Meta: %s", s.ID, s.Name, s.Login, s.Password, s.Meta)
 }
 
 func (s *LoginWithPassword) Validate() error {

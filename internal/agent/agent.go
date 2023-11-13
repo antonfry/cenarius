@@ -89,6 +89,7 @@ func (a *agent) Shutdown() {
 		a.logger.Errorf("Unable to save cache: %s", err.Error())
 	}
 	a.store.Cache().Close()
+	os.Exit(0)
 }
 
 // configureLogger configures logger
@@ -133,9 +134,6 @@ func (a *agent) readCache() error {
 	}
 	a.logger.Debug("agent.readCache cache: ", c)
 	if c != nil {
-		if err := c.Decrypt(a.config.SecretKey, a.config.SecretIV); err != nil {
-			return err
-		}
 		if err := a.cache.Cache().Save(c); err != nil {
 			return err
 		}
@@ -202,6 +200,19 @@ func (a *agent) saveCache() error {
 		return err
 	}
 	if err := a.store.Cache().Save(c); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (a *agent) printEncryptedSecret(i model.Encrypter) error {
+	if err := i.Decrypt(a.config.SecretKey, a.config.SecretIV); err != nil {
+		a.logger.Errorf("agent.printEncryptedSecret failed to decrypt %v : %v", i, err.Error())
+		return err
+	}
+	fmt.Println(i)
+	if err := i.Encrypt(a.config.SecretKey, a.config.SecretIV); err != nil {
+		a.logger.Errorf("agent.printEncryptedSecret failed to encrypt %v : %v", i, err.Error())
 		return err
 	}
 	return nil
@@ -346,9 +357,7 @@ func (a *agent) listLogingWithPassword(ctx context.Context) {
 	l := make([]*model.LoginWithPassword, len(cache.LoginWithPasswords))
 	copy(l, cache.LoginWithPasswords)
 	for _, i := range l {
-		i.Encrypt(a.config.SecretKey, a.config.SecretIV)
 		fmt.Println(i)
-		i.Decrypt(a.config.SecretKey, a.config.SecretIV)
 	}
 }
 
@@ -361,7 +370,9 @@ func (a *agent) getLogingWithPassword(ctx context.Context, id int) {
 	}
 	for _, i := range cache.LoginWithPasswords {
 		if i.ID == id {
-			fmt.Println(i)
+			if err := a.printEncryptedSecret(i); err != nil {
+				return
+			}
 		}
 	}
 }
@@ -387,11 +398,8 @@ func (a *agent) listCreditCard(ctx context.Context) {
 		return
 	}
 	for _, i := range cache.CreditCards {
-		i.Encrypt(a.config.SecretKey, a.config.SecretIV)
 		fmt.Println(i)
-		i.Decrypt(a.config.SecretKey, a.config.SecretIV)
 	}
-	//a.sendRequest(ctx, creditCardGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) getCreditCard(ctx context.Context, id int) {
@@ -403,10 +411,11 @@ func (a *agent) getCreditCard(ctx context.Context, id int) {
 	}
 	for _, i := range cache.CreditCards {
 		if i.ID == id {
-			fmt.Println(i)
+			if err := a.printEncryptedSecret(i); err != nil {
+				return
+			}
 		}
 	}
-	//a.sendRequest(ctx, creditCardGetURI, http.MethodGet, nil, true)
 }
 
 func (a *agent) addCreditCard(ctx context.Context, m *model.CreditCard) {
@@ -423,7 +432,7 @@ func (a *agent) deleteCreditCard(ctx context.Context, id int) {
 }
 
 func (a *agent) listSecretText(ctx context.Context) {
-	fmt.Println("You Credit Cards: ")
+	fmt.Println("You Secret Texts: ")
 	cache, err := a.cache.Cache().Get()
 	if err != nil {
 		a.logger.Error(err.Error())
@@ -437,7 +446,7 @@ func (a *agent) listSecretText(ctx context.Context) {
 }
 
 func (a *agent) getSecretText(ctx context.Context, id int) {
-	fmt.Printf("You Credit Cards with id: %d\n", id)
+	fmt.Printf("You Secret Texts with id: %d\n", id)
 	cache, err := a.cache.Cache().Get()
 	if err != nil {
 		a.logger.Error(err.Error())
@@ -445,9 +454,9 @@ func (a *agent) getSecretText(ctx context.Context, id int) {
 	}
 	for _, i := range cache.SecretTexts {
 		if i.ID == id {
-			i.Encrypt(a.config.SecretKey, a.config.SecretIV)
-			fmt.Println(i)
-			i.Decrypt(a.config.SecretKey, a.config.SecretIV)
+			if err := a.printEncryptedSecret(i); err != nil {
+				return
+			}
 		}
 	}
 }
@@ -465,7 +474,7 @@ func (a *agent) updateSecretText(ctx context.Context, m *model.SecretText) {
 }
 
 func (a *agent) listSecretFile(ctx context.Context) {
-	fmt.Println("You Credit Cards: ")
+	fmt.Println("You Secret Files: ")
 	cache, err := a.cache.Cache().Get()
 	if err != nil {
 		a.logger.Error(err.Error())

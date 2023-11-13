@@ -20,7 +20,8 @@ build_macos:
 
 .PHONY: test
 test:
-	CENARIUS_DATABASEDSN=""  go test -v -race -timeout 30s -v -covermode=atomic ./...
+	cp -r migrations /tmp/
+	CENARIUS_DATABASEDSN="" go test -v -race -timeout 30s -v -covermode=atomic ./...
 	
 .PHONY: compose
 compose:build_linux

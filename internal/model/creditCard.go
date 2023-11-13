@@ -17,10 +17,10 @@ type CreditCard struct {
 	CVC           string `json:"cvc"`
 }
 
-func (c *CreditCard) String() string {
+func (s *CreditCard) String() string {
 	return fmt.Sprintf(
 		"ID: %d, Name: %s, OwnerName: %s, OwnerLastName: %s, Number: %s, CVC: %s, Meta: %s",
-		c.ID, c.Name, c.OwnerName, c.OwnerLastName, c.Number, c.CVC, c.Meta,
+		s.ID, s.Name, s.OwnerName, s.OwnerLastName, s.Number, s.CVC, s.Meta,
 	)
 }
 
