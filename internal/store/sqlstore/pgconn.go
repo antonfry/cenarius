@@ -33,7 +33,7 @@ func migrateSQL(conn *sql.DB) error {
 		return err
 	}
 	m, err := migrate.NewWithDatabaseInstance(
-		"file:///migrations",
+		"file://migrations",
 		"pgx", driver)
 	if err != nil {
 		return err
