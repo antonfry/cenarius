@@ -485,9 +485,7 @@ func (a *agent) listSecretFile(ctx context.Context) {
 		return
 	}
 	for _, i := range cache.SecretFiles {
-		i.Encrypt(a.config.SecretKey, a.config.SecretIV)
 		fmt.Println(i)
-		i.Decrypt(a.config.SecretKey, a.config.SecretIV)
 	}
 }
 
