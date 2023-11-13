@@ -19,10 +19,6 @@ func (s *SecretFile) String() string {
 	return fmt.Sprintf("ID: %d, User ID: %d, Name: %s, Meta: %s, Path: %s", s.ID, s.UserID, s.Name, s.Meta, s.Path)
 }
 
-func (f *SecretFile) Sanitaze() {
-	f.Path = ""
-}
-
 func (s *SecretFile) Validate() error {
 	return validation.ValidateStruct(
 		s,

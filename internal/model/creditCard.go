@@ -24,11 +24,6 @@ func (c *CreditCard) String() string {
 	)
 }
 
-func (c *CreditCard) Sanitaze() {
-	c.Number = ""
-	c.CVC = ""
-}
-
 func (s *CreditCard) Validate() error {
 	return validation.ValidateStruct(
 		s,

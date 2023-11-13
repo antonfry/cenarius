@@ -47,7 +47,6 @@ func (r *FileCacheRepo) Get() (*model.SecretCache, error) {
 	var d *model.SecretCache
 	r.mutex.RLock()
 	defer r.mutex.RUnlock()
-	r.store.file.Sync()
 	s := bufio.NewScanner(r.store.file)
 	for s.Scan() {
 		log.Debug("FileCacheRepo.Get Scan: ", s.Text())
@@ -65,6 +64,9 @@ func (r *FileCacheRepo) Get() (*model.SecretCache, error) {
 }
 
 func (r *FileCacheRepo) Close() error {
+	if err := r.store.file.Sync(); err != nil {
+		return err
+	}
 	if err := r.store.file.Close(); err != nil {
 		return err
 	}

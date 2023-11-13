@@ -18,11 +18,6 @@ func (l *LoginWithPassword) String() string {
 	return fmt.Sprintf("ID: %d, Name: %s, Login: %s, Password: %s, Meta: %s", l.ID, l.Name, l.Login, l.Password, l.Meta)
 }
 
-func (l *LoginWithPassword) Sanitaze() {
-	l.Login = ""
-	l.Password = ""
-}
-
 func (s *LoginWithPassword) Validate() error {
 	return validation.ValidateStruct(
 		s,
