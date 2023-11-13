@@ -439,9 +439,13 @@ func (a *agent) listSecretText(ctx context.Context) {
 		return
 	}
 	for _, i := range cache.SecretTexts {
-		i.Encrypt(a.config.SecretKey, a.config.SecretIV)
+		if err := i.Encrypt(a.config.SecretKey, a.config.SecretIV); err != nil {
+			return
+		}
 		fmt.Println(i)
-		i.Decrypt(a.config.SecretKey, a.config.SecretIV)
+		if err := i.Decrypt(a.config.SecretKey, a.config.SecretIV); err != nil {
+			return
+		}
 	}
 }
 
