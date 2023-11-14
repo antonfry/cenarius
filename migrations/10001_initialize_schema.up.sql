@@ -6,11 +6,11 @@ CREATE TABLE IF NOT EXISTS users(
 
 CREATE TABLE IF NOT EXISTS LoginWithPassword(
     "id" bigserial not null primary key,
-    "user_id" int,
+    "user_id" int not null,
     "name" varchar,
     "meta" text,
-    "login" varchar,
-    "password" varchar,
+    "login" varchar not null,
+    "password" varchar not null,
     "created_at" timestamp default NOW()
 );
 
@@ -19,28 +19,28 @@ CREATE TABLE IF NOT EXISTS CreditCard(
     "user_id" int,
     "name" varchar,
     "meta" text,
-    "owner_name" varchar,
-    "owner_last_name" varchar,
-    "number" varchar,
-    "cvc" varchar,
+    "owner_name" varchar not null,
+    "owner_last_name" varchar not null,
+    "number" varchar not null,
+    "cvc" varchar not null,
     "created_at" timestamp default NOW()
 );
 
 CREATE TABLE IF NOT EXISTS SecretText(
     "id" bigserial not null primary key,
-    "user_id" int,
+    "user_id" int not null,
     "name" varchar,
     "meta" text,
-    "text" text,
+    "text" text not null,
     "created_at" timestamp default NOW()
 );
 
 CREATE TABLE IF NOT EXISTS SecretFile(
     "id" bigserial not null primary key,
-    "user_id" int,
+    "user_id" int not null,
     "name" varchar,
     "meta" text,
-    "path" varchar,
+    "path" varchar not null,
     "created_at" timestamp default NOW()
 );
 
